@@ -27,6 +27,14 @@ areas = []
 # diccionario de áreas: mapea cada número de área a su índice respectivo
 dict_áreas = {}
 
+# constante de tipos de teléfono permitidos
+TIPOS_TELEFONO = ("M", "Móvil", "C", "Casa", "T", "Trabajo", "O", "Otro")
+
+# área por omisión en la generación de contactos
+área_por_defecto = None
+
+# tipo de teléfono por omisión (debe pertenecer a TIPOS_TELÉFONO)
+tipo_por_defecto = None
 
 ########################################
 # Funcionalidades base #################
@@ -60,13 +68,13 @@ def menú_principal():
             print(num + ". " + nombre)
 
         # pedir opción
-        opción = input("  OPCIÓN: ")
+        opción = input("   OPCIÓN: ")
 
         match opción:
             case "1":
                 menú_registrar()
             case "2":
-                pass
+                menú_config_contactos()
             case "3":
                 pass
             case "4":
@@ -109,7 +117,7 @@ def menú_registrar():
             print(num + ". " + nombre)
 
         # pedir opción
-        opción = input("  OPCIÓN: ")
+        opción = input("   OPCIÓN: ")
 
         match opción:
             case "1":
@@ -124,7 +132,7 @@ def menú_registrar():
                 # finalizar el ciclo, esto regresa al menú principal
                 break
             case _:
-                input("[ERROR] La opción digitada no es válida. Presione <INTRO>")      
+                input("[ERROR] La opción digitada no es válida. Presione <INTRO> ")      
 
 """
 funcionalidad 1.1: agregar áreas
@@ -149,19 +157,19 @@ def registrar_agregar():
             número = int(número)
 
             if número <= 0 or número >= 1000:
-                input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO>")
+                input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO> ")
                 # retorna al inicio del while
                 continue
             
             # revisar si el número existe en alguna área registrada
             if área_registrada(número):
-                input("Esta área ya está registrada, no se puede agregar. Presione <INTRO>")
+                input("Esta área ya está registrada, no se puede agregar. Presione <INTRO> ")
                 continue
             
             nombre = input("Nombre del área" + " " * 5)
 
             if len(nombre) < 1 or len(nombre) > 40:
-                input("[ERROR] El nombre de área debe ser entre 1 y 40 caracteres. Presione <INTRO>")
+                input("[ERROR] El nombre de área debe ser entre 1 y 40 caracteres. Presione <INTRO> ")
                 continue
 
             confirmación = input("OPCIÓN    <A>Aceptar    <C>Cancelar  ")
@@ -172,10 +180,11 @@ def registrar_agregar():
 
         # sucede cuando número no se puede convertir a int
         except ValueError:
-            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO>")
+            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
         except Exception as error:
             print(error)
-            input("[ERROR] Sucedió un error no previsto. Presione <INTRO>")
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
 """
 funcionalidad 1.2: consultar áreas
@@ -201,7 +210,7 @@ def registrar_consultar():
 
             # revisar que esté registrada
             if not área_registrada(número):
-                input("Esta área no está registrada, no se puede consultar. Presione <INTRO>")
+                input("Esta área no está registrada, no se puede consultar. Presione <INTRO> ")
                 continue
             
             # encontrar el nombre usando el diccionario
@@ -214,10 +223,11 @@ def registrar_consultar():
 
         # sucede cuando número no se puede convertir a int
         except ValueError:
-            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO>")
+            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
         except Exception as error:
             print(error)
-            input("[ERROR] Sucedió un error no previsto. Presione <INTRO>")
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
 """
 funcionalidad 1.3: modificar áreas
@@ -243,7 +253,7 @@ def registrar_modificar():
 
             # revisar que esté registrada
             if not área_registrada(número):
-                input("Esta área no está registrada, no se puede consultar. Presione <INTRO>")
+                input("Esta área no está registrada, no se puede consultar. Presione <INTRO> ")
                 continue
             
             nombre = areas[dict_áreas[número]][1]
@@ -257,7 +267,7 @@ def registrar_modificar():
                 nuevo = nombre
 
             elif len(nuevo) > 40:
-                input("[ERROR] El nuevo nombre debe ser entre 1 y 40 caracteres. Presione <INTRO>")
+                input("[ERROR] El nuevo nombre debe ser entre 1 y 40 caracteres. Presione <INTRO> ")
                 continue
 
             confirmación = input("OPCIÓN    <A>Aceptar  <C>Cancelar ")
@@ -267,10 +277,11 @@ def registrar_modificar():
 
         # sucede cuando número no se puede convertir a int
         except ValueError:
-            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO>")
+            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
         except Exception as error:
             print(error)
-            input("[ERROR] Sucedió un error no previsto. Presione <INTRO>")
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
     
 """
 funcionalidad 1.4: eliminar áreas
@@ -315,11 +326,70 @@ def registrar_eliminar():
 
         # sucede cuando número no se puede convertir a int
         except ValueError:
-            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO>")
+            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
         except Exception as error:
             print(error)
-            input("[ERROR] Sucedió un error no previsto. Presione <INTRO>")
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
+
+"""
+menú de opción 2: configuración de la lista de contactos
+
+pide el área y el tipo de elemento por omisión, y los establece en las configuraciones
+"""
+def menú_config_contactos():
+    limpiar_terminal()
+
+    # 10 espacios, título, nueva línea adicional
+    print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+    print(" " * 10 + "CONFIGURACIÓN DE LA LISTA DE CONTACTOS" + "\n")
+
+    # primera parte: obtener el área por defecto
+    while True:
+        try:
+            área = input("Área por omisión:" + " " * 5)
+            
+            área = int(área)
+
+            # verificar que esté registrado
+            if not área_registrada(área):
+                input("Esta área no está registrada, no se puede seleccionar. Presione <INTRO> ")
+                print()
+                continue
+
+            print(" " * 22 + areas[dict_áreas[área]][1])
+            print()
+
+            break
+
+        except ValueError:
+            input("[ERROR] El área debe ser un número entre 0 y 999. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
+        except Exception as error:
+            print(error)
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
+
+    # parte 2: obtener el tipo de número por defecto
+    while True:
+            tipo = input("Tipo de teléfono por omisión (M: Móvil, C: Casa, T: Trabajo, O: Otro): ")
+
+            if tipo not in TIPOS_TELEFONO:
+                input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
+                print()
+                continue
+
+            break
+    
+    
+    # parte 3: confirmar los valores
+    print()
+    confirmación = input("OPCIÓN    <A>Aceptar  <C>Cancelar  ")
+
+    if confirmación == "A":
+        área_por_defecto = área
+        tipo_por_defecto = tipo    
+        
 
 ########################################
 # Funciones auxiliares #################
