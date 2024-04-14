@@ -576,10 +576,55 @@ def contactos_agregar():
         dict_contactos[(área, telf)] = len(contactos) - 1
         
 """
-TODO funcionalidad 3.2: consultar contactos
+funcionalidad 3.2: consultar contactos
 """
 def contactos_consultar():
-    pass
+    while True:
+        limpiar_terminal()
+
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "REGISTRAR CONTACTOS: CONSULTAR" + "\n")
+
+        # pedir área
+        try:
+            telf = input("Teléfono" + " " * 17)
+
+            # regresar al menú de registro
+            if telf == "C":
+                break
+            
+            telf = int(telf)
+
+            área = int(input("Área" + " " * 21))
+
+            if (telf, área) not in dict_contactos:
+                input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
+                continue
+            
+            # encontrar el contacto asociado al teléfono
+            contacto = contactos[dict_contactos[(telf, área)]]
+
+            # imprimir todos los valores
+            print(" " * 25 + areas[dict_áreas[área]][1])
+            print("Tipo teléfono (M,C,T,O)  " + contacto[2])
+            print("Nombre contacto          " + contacto[3])
+            print("Correo electrónico       " + contacto[4])
+            print("Dirección física         " + contacto[5])
+            print("Fecha de nacimiento      " + contacto[6])
+            print("Pasatiempos              " + contacto[7])
+            print("Notas                    " + contacto[8] + "\n")
+
+            input("OPCIÓN    <A>Aceptar  ")
+
+        # sucede cuando teléfono o área no se puede convertir a int
+        except ValueError:
+            input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
+        except Exception as error:
+            print(error)
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
+
 
 """
 TODO funcionalidad 3.3: modificar contactos
