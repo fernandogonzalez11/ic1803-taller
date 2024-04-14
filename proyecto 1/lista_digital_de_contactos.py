@@ -318,7 +318,17 @@ def áreas_eliminar():
                 input("Esta área no está registrada, no se puede consultar. Presione <INTRO>")
                 continue
             
-            # TODO: verificar que no hayan contactos asociados
+            # verificar que no hayan contactos asociados
+            hay_contactos = False
+
+            for contacto in contactos:
+                if contacto[1] == número:
+                    input("En esta área hay contactos asociados, no se puede eliminar. Presione <INTRO> ")
+                    hay_contactos = True
+                    break
+            
+            if hay_contactos:
+                break
 
             # encontrar el nombre usando el diccionario
             índice = dict_áreas[número]
@@ -330,7 +340,7 @@ def áreas_eliminar():
 
             if confirmación == "A":
                 del areas[índice]
-                construir_dict_áreas()
+                construir_diccionarios()
 
         # sucede cuando número no se puede convertir a int
         except ValueError:
@@ -701,6 +711,7 @@ def verificar_correo(correo: str):
 # Pruebas ##############################
 ########################################
 areas = [(502, "Guatemala"), (506, "Costa Rica"), (507, "Nicaragua")]
+contactos = [[12341234, 506, 'M', 'a', 'b@c.com', '', '11/11/2006', '', '']]
 área_por_defecto = 506
 tipo_por_defecto = "M"
 construir_diccionarios()
