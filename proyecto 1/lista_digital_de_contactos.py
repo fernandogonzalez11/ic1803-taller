@@ -554,7 +554,7 @@ def contactos_agregar():
         pasatiempos = input("Pasatiempos" + " " * 14)
 
         if len(pasatiempos) > 60:
-            input("[ERROR] Los pasatiempos deben ser entre 0 y 60 caracteres")
+            input("[ERROR] Los pasatiempos deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
         else:
             contacto.append(pasatiempos)
 
@@ -563,7 +563,7 @@ def contactos_agregar():
         notas = input("Notas" + " " * 20)
 
         if len(pasatiempos) > 60:
-            input("[ERROR] Las notas deben ser entre 0 y 60 caracteres")
+            input("[ERROR] Las notas deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
         else:
             contacto.append(notas)
 
@@ -586,7 +586,7 @@ def contactos_consultar():
         print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
         print(" " * 10 + "REGISTRAR CONTACTOS: CONSULTAR" + "\n")
 
-        # pedir área
+        # pedir teléfono
         try:
             telf = input("Teléfono" + " " * 17)
 
@@ -627,10 +627,145 @@ def contactos_consultar():
 
 
 """
-TODO funcionalidad 3.3: modificar contactos
+funcionalidad 3.3: modificar contactos
 """
 def contactos_modificar():
-    pass
+    while True:
+        limpiar_terminal()
+
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "REGISTRAR CONTACTOS: MODIFICAR" + "\n")
+
+        # pedir teléfono
+        try:
+            telf = input("Teléfono" + " " * 17)
+
+            # regresar al menú de registro
+            if telf == "C":
+                break
+            
+            telf = int(telf)
+
+            área = int(input("Área" + " " * 21))
+
+            if (telf, área) not in dict_contactos:
+                input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
+                continue
+            
+            # encontrar el contacto asociado al teléfono
+            # hacer un copy para no interferir con el elemento global
+            contacto = contactos[dict_contactos[(telf, área)]].copy()
+
+            # longitudes los valores del tipo en adelante
+            longitudes = [len(s) for s in contacto[2:]]
+            # esto es útil para tener el tamaño adecuado para emular columnas
+            max_long = max(longitudes)
+            # ahora, que cada longitud más bien sea el margen
+            longitudes = [max_long - longitud + 2 for longitud in longitudes]
+
+            nombre_área = areas[dict_áreas[área]][1]
+
+            print(" " * 25 + nombre_área + " " * (max_long - len(nombre_área) + 2) + "NUEVOS VALORES")
+
+            # pedir cada dato secuencialmente y editarlo en contacto (solo localmente)
+
+            # tipo de teléfono
+            while True:
+                tipo = input("Tipo teléfono (M,C,T,O)  " + contacto[2] + " " * longitudes[0])
+                if not tipo:
+                    break
+                elif tipo in TIPOS_TELEFONO:
+                    contacto[2] = tipo
+                    break
+                else:
+                    input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
+            
+            # nombre
+            while True:
+                nombre = input("Nombre contacto          " + contacto[3] + " " * longitudes[1])
+
+                if not nombre:
+                    break
+                elif len(nombre) <= 50:
+                    contacto[3] = nombre
+                    break
+                else:
+                    input("[ERROR] El nombre del contacto debe ser entre 1 y 50 caracteres. Presione <INTRO> ")
+
+            # correo
+            while True:
+                correo = input("Correo electrónico       " + contacto[4] + " " * longitudes[2])
+
+                if not correo:
+                    break
+                elif verificar_correo(correo):
+                    contacto[4] = correo
+                    break
+                else:
+                    input("El correo no es válido. Presione <INTRO> ")
+            
+            # dirección
+            while True:
+                dirección = input("Dirección física         " + contacto[5] + " " * longitudes[3])
+
+                if not dirección:
+                    break
+                elif len(dirección) <= 80:
+                    contacto[5] = dirección
+                    break
+                else:
+                    input("[ERROR] La dirección física debe ser entre 0 y 80 caracteres. Presione <INTRO> ")
+
+            # fecha de nacimiento
+            while True:
+                nacimiento = input("Fecha de nacimiento      " + contacto[6] + " " * longitudes[4])
+
+                if not nacimiento:
+                    break
+                elif validar_fecha(nacimiento) != -1:
+                    contacto[6] = validar_fecha(nacimiento)
+                    break
+                else:
+                    input("[ERROR] La fecha no es válida. Presione <INTRO> ")
+
+            # pasatiempos
+            while True:
+                pasatiempos = input("Pasatiempos              " + contacto[7] + " " * longitudes[5])
+
+                if not pasatiempos:
+                    break
+                elif len(pasatiempos) <= 60:
+                    contacto[7] = pasatiempos
+                    break
+                else:
+                    input("[ERROR] Los pasatiempos deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
+
+            # notas
+            while True:
+                notas = input("Notas                    " + contacto[8] + " " * longitudes[6])
+
+                if not notas:
+                    break
+                elif len(notas) <= 60:
+                    contacto[8] = notas
+                    break
+                else:
+                    input("[ERROR] Las notas deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
+                
+
+            confirmación = input("OPCIÓN    <A>Aceptar  <C>Cancelar ")
+
+            if confirmación == "A":
+                contactos[dict_contactos[(telf, área)]] = contacto
+
+        # sucede cuando teléfono o área no se puede convertir a int
+        except ValueError:
+            input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
+        # imprimir y manifestar cualquier otro error
+        except Exception as error:
+            print(error)
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
 """
 TODO funcionalidad 3.4: eliminar contactos
