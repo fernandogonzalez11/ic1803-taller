@@ -44,6 +44,13 @@ contactos = []
 # diccionario de contactos: mapea cada tupla de teléfonos a su índice en contactos
 dict_contactos = {}
 
+# lista de grupos (solo con sus nombres)
+grupos = []
+
+# lista de contactos asociados a cada grupo de la lista anterior
+contactos_por_grupos = []
+
+
 ########################################
 # Funcionalidades base #################
 ########################################
@@ -86,7 +93,7 @@ def menú_principal():
             case "3":
                 menú_registro_contactos()
             case "4":
-                pass
+                menú_administrar_grupos()
             case "5":
                 pass
             case "6":
@@ -97,7 +104,7 @@ def menú_principal():
                 # finalizar el ciclo, y en turno todo el programa
                 break
             case _:
-                input("[ERROR] La opción digitada no es válida. Presione <INTRO>")
+                input("[ERROR] La opción digitada no es válida. Presione <INTRO> ")
 
 
 """
@@ -316,7 +323,7 @@ def áreas_eliminar():
 
             # revisar que esté registrada
             if not área_registrada(número):
-                input("Esta área no está registrada, no se puede consultar. Presione <INTRO>")
+                input("Esta área no está registrada, no se puede consultar. Presione <INTRO> ")
                 continue
             
             # verificar que no hayan contactos asociados
@@ -354,7 +361,6 @@ def áreas_eliminar():
 
 """
 menú de opción 2: configuración de la lista de contactos
-
 pide el área y el tipo de elemento por omisión, y los establece en las configuraciones
 """
 def menú_config_contactos():
@@ -410,7 +416,8 @@ def menú_config_contactos():
     if confirmación == "A":
         área_por_defecto = área
         tipo_por_defecto = tipo    
-        
+
+
 """
 menú de opción 3: registro de contactos
 pide infinitamente entradas para sus funciones particulares
@@ -825,6 +832,270 @@ def contactos_eliminar():
             input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
 
+""" 
+menú de opción 4: administrar grupos de contactos
+pide infinitamente entradas para sus funciones particulares
+se puede regresar digitando "0"
+"""
+def menú_administrar_grupos():
+    opciones = {
+        "1": "Agregar grupos",
+        "2": "Agregar contactos a los grupos",
+        "3": "Modificar grupos",
+        "4": "Eliminar grupos",
+        "5": "Eliminar contactos de los grupos",
+        "0": "Fin"
+    }
+
+    while True:
+        limpiar_terminal()
+
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "ADMINISTRAR GRUPOS DE CONTACTOS" + "\n")
+
+        # imprimir todas las opciones
+        for num, nombre in opciones.items():
+            print(num + ". " + nombre)
+
+        # pedir opción
+        opción = input("   OPCIÓN: ")
+
+        match opción:
+            case "1":
+                grupos_agregar()
+            case "2":
+                grupos_agregar_contacto()
+            case "3":
+                grupos_modificar()
+            case "4":
+                grupos_eliminar()
+            case "5":
+                grupos_eliminar_contacto()
+            case "0":
+                # finalizar el ciclo, esto regresa al menú principal
+                break
+            case _:
+                input("[ERROR] La opción digitada no es válida. Presione <INTRO> ")
+
+"""
+funcionalidad 4.1: agregar grupos
+"""
+def grupos_agregar():
+    while True:
+        limpiar_terminal()
+
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "ADMINISTRAR GRUPOS DE CONTACTOS")
+        print(" " * 10 + "Agregar grupos" + "\n")
+
+        # solicitar el nombre del grupo
+        nombre = input("Nombre del grupo" + " " * 4)
+
+        if nombre == "C":
+            break
+        elif len(nombre) > 40:
+            input("[ERROR] El nombre del grupo debe ser entre 1 y 40 caracteres. Presione <INTRO> ")
+        elif nombre in grupos:
+            input("Este grupo ya está registrado, no se puede agregar. Presione <INTRO> ")
+        else:
+            print()
+            confirmación = input("OPCIÓN    <A>Aceptar <C>Cancelar ")
+            
+            if confirmación == "A":
+                # agrega tanto el nombre como una lista vacía de contactos
+                grupos.append(nombre)
+                contactos_por_grupos.append([])
+
+"""
+funcionalidad 4.2: agregar contactos a grupos
+"""
+def grupos_agregar_contacto():
+    while True:
+        try:
+            limpiar_terminal()
+
+            # 10 espacios, título, nueva línea adicional
+            print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+            print(" " * 10 + "ADMINISTRAR GRUPOS DE CONTACTOS")
+            print(" " * 10 + "Agregar contactos a los grupos" + "\n")
+
+            nombre = input("Nombre del grupo" + " " * 4)
+
+            if nombre == "C":
+                break
+            elif nombre not in grupos:
+                input("Este grupo no existe, no puede agregarle contactos. Presione <INTRO> ")
+                continue
+            
+            print()
+
+            while True:
+                telf = int(input("Teléfono" + " " * 12))
+                área = int(input("Área" + " " * 16))
+
+                if (telf, área) not in dict_contactos:
+                    input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
+                else:
+                    break
+
+            contacto = contactos[dict_contactos[(telf, área)]]
+
+            print(" " * 20 + areas[dict_áreas[área]][1])
+            print("Nombre contacto" + " " * 5 + contacto[3] + "\n")
+
+            confirmación = input("OPCIÓN  <A>Aceptar  <C>Cancelar ")
+
+            if confirmación == "A":
+                # NOTE ¿qué hago con duplicados?
+                # por ahora los voy a ignorar
+
+                índice_grupo = grupos.index(nombre)
+
+                if (telf, área) not in contactos_por_grupos[índice_grupo]:
+                    contactos_por_grupos[índice_grupo].append((telf, área))
+
+        except ValueError:
+            input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
+        except Exception as error:
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
+
+"""
+funcionalidad 4.3: modificar grupos
+"""
+def grupos_modificar():
+    while True:
+        limpiar_terminal()
+
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "ADMINISTRAR GRUPOS DE CONTACTOS")
+        print(" " * 10 + "Modificar grupos" + "\n")
+        
+        print(" " * 36 + "NUEVO VALOR")
+        nombre = input("Nombre del grupo" + " " * 4)
+
+        if nombre == "C":
+            break
+        elif nombre not in grupos:
+            input("Este grupo no existe, no se puede modificar. Presione <INTRO> ")
+            continue
+
+        nuevo_nombre = input(" " * 36)
+
+        # si el grupo nuevo existe, guarda el índice aquí para unirlos
+        índice_original = grupos.index(nombre)
+        índice_nuevo = None
+
+        if nuevo_nombre in grupos:
+            índice_nuevo = grupos.index(nuevo_nombre)
+            print("Grupo ya existe, en caso de aceptar la operación los contactos se le agregarán")
+        
+        confirmación = input("OPCIÓN    <A>Aceptar <C>Cancelar ")
+
+        if confirmación == "A":
+            if índice_nuevo:
+                # unir ambos en uno, y borrar el otro
+
+                # hacer una unión de sets, para no tener posibles duplicados
+                set_nuevos_contactos = set(contactos_por_grupos[índice_original]) \
+                    .union(set(contactos_por_grupos[índice_nuevo]))
+
+                # pasar el set -> list, asignarlo al original
+                contactos_por_grupos[índice_original] = list(set_nuevos_contactos)
+                del grupos[índice_nuevo]
+                del contactos_por_grupos[índice_nuevo]
+
+            # sin importar el nuevo índice, se debe cambiar el nombre
+            grupos[índice_original] = nuevo_nombre
+
+"""
+funcionalidad 4.4: eliminar grupos
+"""
+def grupos_eliminar():
+    while True:
+        limpiar_terminal()
+
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "ADMINISTRAR GRUPOS DE CONTACTOS")
+        print(" " * 10 + "Eliminar grupos" + "\n")
+
+        # solicitar el nombre del grupo
+        nombre = input("Nombre del grupo" + " " * 4)
+
+        if nombre == "C":
+            break
+        elif nombre not in grupos:
+            input("Este grupo no existe, no se puede eliminar. Presione <INTRO> ")
+        else:
+            print()
+            confirmación = input("CONFIRMA LA ELIMINACIÓN    <A>Aceptar <C>Cancelar ")
+            
+            if confirmación == "A":
+                # agrega tanto el nombre como una lista vacía de contactos
+                índice_grupo = grupos.index(nombre)
+
+                del grupos[índice_grupo]
+                del contactos_por_grupos[índice_grupo]
+
+"""
+funcionalidad 4.5: eliminar contactos de grupos
+"""
+def grupos_eliminar_contacto():
+    while True:
+        try:
+            limpiar_terminal()
+
+            # 10 espacios, título, nueva línea adicional
+            print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+            print(" " * 10 + "ADMINISTRAR GRUPOS DE CONTACTOS")
+            print(" " * 10 + "Eliminar contactos de los grupos" + "\n")
+
+            nombre = input("Nombre del grupo" + " " * 4)
+
+            if nombre == "C":
+                break
+            elif nombre not in grupos:
+                input("Este grupo no existe, no se puede modificar. Presione <INTRO> ")
+                continue
+
+            índice_grupo = grupos.index(nombre)
+            
+            while True:
+                telf = int(input("Teléfono" + " " * 12))
+                área = int(input("Área" + " " * 16))
+
+                if (telf, área) not in dict_contactos:
+                    input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
+                else:
+                    break
+
+            contacto = contactos[dict_contactos[(telf, área)]]
+
+            print(" " * 20 + areas[dict_áreas[área]][1])
+            print("Nombre contacto" + " " * 5 + contacto[3] + "\n")
+
+            print()
+            if (telf, área) not in contactos_por_grupos[índice_grupo]:
+                input("Este contacto no existe en el grupo, no puede eliminarlo. Presione <INTRO> ")
+                continue
+
+            confirmación = input("CONFIRMA LA ELIMINACIÓN  <A>Aceptar  <C>Cancelar ")
+
+            if confirmación == "A":
+                índice_contacto = contactos_por_grupos[índice_grupo] \
+                    .index((telf, área))
+
+                del contactos_por_grupos[índice_grupo][índice_contacto]
+
+        except ValueError:
+            input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
+        except Exception as error:
+            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
+
+   
 
 ########################################
 # Funciones auxiliares #################
@@ -870,7 +1141,6 @@ def construir_diccionarios():
     # mapear cada tupla de teléfono a su índice en la lista
     for índice, contacto in enumerate(contactos):
         dict_contactos[(contacto[0], contacto[1])] = índice
-
 
 """
 verifica si una fecha es correcta, y retorna "0", -1 o la fecha original, dependiendo de su validez
@@ -948,7 +1218,13 @@ def verificar_correo(correo: str):
 # Pruebas ##############################
 ########################################
 areas = [(502, "Guatemala"), (506, "Costa Rica"), (507, "Nicaragua")]
-contactos = [[12341234, 506, 'M', 'a', 'b@c.com', '', '11/11/2006', '', '']]
+contactos = [
+    [12341234, 506, 'M', 'a', 'b@c.com', '', '11/11/2006', '', ''],
+    [24683579, 502, 'T', 'jorge', 'jorge@business.com', 'pérez zeledón', '3/5/1990', 'hacer de jorge', 'es jorge'],
+    [87478747, 507, 'C', 'jaimito', 'j@jjj.com', 'casa', '2/5/1876', 'cosas', 'lol']
+]
+grupos = ["lol"]
+contactos_por_grupos = [[(12341234, 506)]]
 área_por_defecto = 506
 tipo_por_defecto = "M"
 construir_diccionarios()
