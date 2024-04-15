@@ -15,6 +15,9 @@ Grupo 4
 # usado para limpiar consola
 import os
 
+# usado para revisar expresiones en los filtros de la lista de contactos
+import re
+
 
 ########################################
 # Variables principales ################
@@ -95,7 +98,7 @@ def menú_principal():
             case "4":
                 menú_administrar_grupos()
             case "5":
-                pass
+                menú_lista_contactos()
             case "6":
                 pass
             case "7":
@@ -497,7 +500,7 @@ def contactos_agregar():
                 input("El teléfono debe ser de 5 a 12 dígitos. Presione <INTRO> ")
             elif área not in dict_áreas:
                 input("Esta área no está registrada, no se puede seleccionar. Presione <INTRO> ")
-            elif (área, telf) in dict_contactos:
+            elif (telf, área) in dict_contactos:
                 input("Este teléfono ya está registrado, no se puede agregar. Presione <INTRO> ")
             else:
                 contacto += [telf, área]
@@ -581,7 +584,7 @@ def contactos_agregar():
 
     if confirmación == "A":
         contactos.append(contacto)
-        dict_contactos[(área, telf)] = len(contactos) - 1
+        dict_contactos[(telf, área)] = len(contactos) - 1
         
 """
 funcionalidad 3.2: consultar contactos
@@ -948,7 +951,7 @@ def grupos_agregar_contacto():
             confirmación = input("OPCIÓN  <A>Aceptar  <C>Cancelar ")
 
             if confirmación == "A":
-                # NOTE ¿qué hago con duplicados?
+                # NOTE: ¿qué hago con duplicados?
                 # por ahora los voy a ignorar
 
                 índice_grupo = grupos.index(nombre)
@@ -1095,7 +1098,89 @@ def grupos_eliminar_contacto():
         except Exception as error:
             input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
-   
+
+""" 
+menú de opción 5: lista de contactos
+obtiene diferentes filtros para varios campos de los contactos, y con ellos obtiene una lista filtrada
+luego la traslada a una tabla en un archivo PDF
+"""
+def menú_lista_contactos():
+    limpiar_terminal()
+
+    # 10 espacios, título, nueva línea adicional
+    print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+    print(" " * 10 + "LISTA DE CONTACTOS" + "\n")
+    
+    # pide pada filtro secuencialmente y los popula automáticamente en una lista
+    # cada filtro está asociado al índice del campo que trata
+    # excepto el filtro de grupo; se trata diferente
+    filtros = [
+        (3, generar_patrón_regex(input("Filtros:  Nombre contacto      "))),
+        (0, generar_patrón_regex(input("          Teléfono             "))),
+        (1, generar_patrón_regex(input("          Área                 "))),
+        (6, generar_patrón_regex(input("          Fecha de nacimiento  "))),
+        (7, generar_patrón_regex(input("          Pasatiempos          "))),
+    ]
+    filtro_grupo = generar_patrón_regex(input("          Grupo                "))
+
+    # hecho un iterador para mantener la consistencia (pues filter() retorna iteradores)
+    contactos_finales = contactos
+
+    # todos los filtros excepto el de grupo
+    for filtro in filtros:
+        # si el filtro no es None
+        if filtro[1] != None:
+            """
+            toma el valor de contacto en el índice del filtro y lo compara con el patrón del filtro respectivo
+            devuelve un bool dependiendo de si hay match con el patrón
+
+            entrada: contacto como lista
+            salida: bool
+
+            función local al ciclo for
+            """
+            def func_filtro_individual(contacto: list):
+                índice, patrón = filtro
+
+                if patrón.match(str(contacto[índice])):
+                    return True
+                
+                return False
+
+            # se filtran los únicos elementos que cumplan el filtro respectivo
+            contactos_finales = [c for c in contactos_finales if func_filtro_individual(c)]
+
+    """
+    retorna si el contacto está en un grupo que tiene match con el regex del filtro de grupo
+
+    entrada: contacto como lista de elementos
+    salida: bool
+
+    función local, solo para uso de su pariente
+    """
+    def func_filtro_grupo(contacto: list):
+        # obtener los grupos en donde está contacto
+        grupos_de_contacto = []
+        for índice, grupo in enumerate(contactos_por_grupos):
+            nombre_grupo = grupos[índice]
+            # si el contacto está en el grupo de contactos_por grupos
+            # y el respectivo nombre de ese grupo hace match, es verdadero
+            if (contacto[0], contacto[1]) in grupo and filtro_grupo.match(nombre_grupo):
+                return True
+
+        # si no existe tal grupo, retorna falso
+        return False
+
+    # filtro de grupo
+    if filtro_grupo:
+        contactos_finales = [c for c in contactos_finales if func_filtro_grupo(c)]
+
+    # TODO: transferirlo a un PDF con columnas
+    print("--- resultado (debug) ---")
+    for c in contactos_finales:
+        print(c)
+    input()
+
 
 ########################################
 # Funciones auxiliares #################
@@ -1197,21 +1282,55 @@ def validar_fecha(fecha: str):
 
 """
 verifica si un correo es correcto
-parte1@parte2, sin espacio
+parte1@parte2, sin espacios
 
 entrada: string
 salida: bool
 """
 def verificar_correo(correo: str):
-    if not "@" in correo or " " in correo:
-        return False
+    # \S: caracteres que no sean espacios
+    # \S+: 1 o más de esos
+    # \S+@S+: cccc@cccc
+    # ^\S+@\S+$: no permitir más caracteres fuera de cccc@cccc
+    patrón = re.compile("^\S+@\S+$")
+    # fullmatch retorna None o un objeto, pasar eso a bool (False y True, respectivamente)
+    return bool(patrón.fullmatch(correo))
+
+"""
+generar un patrón de regex con base en los comodines
+si entra un string vacía, devuelve None
+abc -> ^abc$
+%abc -> .*abc$
+%ab%c% -> .*ab.*c$
+
+entrada: string
+salida: re.Pattern (objeto del patrón de regex) o None
+"""
+def generar_patrón_regex(string: str):
+    if not string:
+        return None
     
-    # como debe estar tanto parte1 como parte2, si aparece el delimitador al inicio o final uno de ellos falta
-    if correo[0] == "@" or correo[-1] == "@":
-        return False
+    # NOTE: ¿qué hago si hay más de 3 %? (es inválido)
+    # por ahora lo devuelvo sin filtro, entonces lo saltaría
+    if string.count("%") > 3:
+        return None
 
-    return len(correo.split("@")) == 2
+    # escapar caracteres especiales de regex
+    string_nuevo = ""
+    for char in string:
+        # el backslash \ se debe a su vez escapar en python -> \\
+        if char == "%":
+            string_nuevo += ".*"
+        elif char in ".^$*+?{}()[]\\|()":
+            string_nuevo += "\\" + char
+        else:
+            string_nuevo += char
 
+    string_nuevo = "^" + string_nuevo + "$"
+
+    # compilar patrón con marca de ignorar mayúsculas
+    # funciona para ignorarlas tanto en el patrón como en el objetivo
+    return re.compile(string_nuevo, re.IGNORECASE)
 
 
 ########################################
