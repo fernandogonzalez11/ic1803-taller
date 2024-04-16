@@ -18,6 +18,14 @@ import os
 # usado para revisar expresiones en los filtros de la lista de contactos
 import re
 
+# usados para crear PDFs
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.styles import getSampleStyleSheet
+
+# usado para abrir un PDF en el programa designado para tal
+import webbrowser
 
 ########################################
 # Variables principales ################
@@ -1105,81 +1113,89 @@ obtiene diferentes filtros para varios campos de los contactos, y con ellos obti
 luego la traslada a una tabla en un archivo PDF
 """
 def menú_lista_contactos():
-    limpiar_terminal()
+    while True:
+        limpiar_terminal()
 
-    # 10 espacios, título, nueva línea adicional
-    print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
-    print(" " * 10 + "LISTA DE CONTACTOS" + "\n")
-    
-    # pide pada filtro secuencialmente y los popula automáticamente en una lista
-    # cada filtro está asociado al índice del campo que trata
-    # excepto el filtro de grupo; se trata diferente
-    filtros = [
-        (3, generar_patrón_regex(input("Filtros:  Nombre contacto      "))),
-        (0, generar_patrón_regex(input("          Teléfono             "))),
-        (1, generar_patrón_regex(input("          Área                 "))),
-        (6, generar_patrón_regex(input("          Fecha de nacimiento  "))),
-        (7, generar_patrón_regex(input("          Pasatiempos          "))),
-    ]
-    filtro_grupo = generar_patrón_regex(input("          Grupo                "))
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "LISTA DE CONTACTOS" + "\n")
+        
+        # pide pada filtro secuencialmente y los popula automáticamente en una lista
+        # cada filtro está asociado al índice del campo que trata
+        # excepto el filtro de grupo; se trata diferente
+        filtros = [
+            (3, generar_patrón_regex(input("Filtros:  Nombre contacto      "))),
+            (0, generar_patrón_regex(input("          Teléfono             "))),
+            (1, generar_patrón_regex(input("          Área                 "))),
+            (6, generar_patrón_regex(input("          Fecha de nacimiento  "))),
+            (7, generar_patrón_regex(input("          Pasatiempos          "))),
+        ]
+        filtro_grupo = generar_patrón_regex(input("          Grupo                "))
 
-    # hecho un iterador para mantener la consistencia (pues filter() retorna iteradores)
-    contactos_finales = contactos
+        # hecho un iterador para mantener la consistencia (pues filter() retorna iteradores)
+        contactos_finales = contactos
 
-    # todos los filtros excepto el de grupo
-    for filtro in filtros:
-        # si el filtro no es None
-        if filtro[1] != None:
-            """
-            toma el valor de contacto en el índice del filtro y lo compara con el patrón del filtro respectivo
-            devuelve un bool dependiendo de si hay match con el patrón
+        # todos los filtros excepto el de grupo
+        for filtro in filtros:
+            # si el filtro no es None
+            if filtro[1] != None:
+                """
+                toma el valor de contacto en el índice del filtro y lo compara con el patrón del filtro respectivo
+                devuelve un bool dependiendo de si hay match con el patrón
 
-            entrada: contacto como lista
-            salida: bool
+                entrada: contacto como lista
+                salida: bool
 
-            función local al ciclo for
-            """
-            def func_filtro_individual(contacto: list):
-                índice, patrón = filtro
+                función local al ciclo for
+                """
+                def func_filtro_individual(contacto: list):
+                    índice, patrón = filtro
 
-                if patrón.match(str(contacto[índice])):
+                    if patrón.match(str(contacto[índice])):
+                        return True
+                    
+                    return False
+
+                # se filtran los únicos elementos que cumplan el filtro respectivo
+                contactos_finales = [c for c in contactos_finales if func_filtro_individual(c)]
+
+        """
+        retorna si el contacto está en un grupo que tiene match con el regex del filtro de grupo
+
+        entrada: contacto como lista de elementos
+        salida: bool
+
+        función local, solo para uso de su pariente
+        """
+        def func_filtro_grupo(contacto: list):
+            # obtener los grupos en donde está contacto
+            grupos_de_contacto = []
+            for índice, grupo in enumerate(contactos_por_grupos):
+                nombre_grupo = grupos[índice]
+                # si el contacto está en el grupo de contactos_por grupos
+                # y el respectivo nombre de ese grupo hace match, es verdadero
+                if (contacto[0], contacto[1]) in grupo and filtro_grupo.match(nombre_grupo):
                     return True
+
+            # si no existe tal grupo, retorna falso
+            return False
+
+        # filtro de grupo
+        if filtro_grupo:
+            contactos_finales = [c for c in contactos_finales if func_filtro_grupo(c)]
+
+        confirmación = input("OPCIÓN    <A>Aceptar    <C>Cancelar  ")
+
+        if confirmación == "A":
+            try:
+                nombre_archivo = "tabla_contactos.pdf"
+                generar_tabla_pdf(nombre_archivo, contactos_finales)
                 
-                return False
-
-            # se filtran los únicos elementos que cumplan el filtro respectivo
-            contactos_finales = [c for c in contactos_finales if func_filtro_individual(c)]
-
-    """
-    retorna si el contacto está en un grupo que tiene match con el regex del filtro de grupo
-
-    entrada: contacto como lista de elementos
-    salida: bool
-
-    función local, solo para uso de su pariente
-    """
-    def func_filtro_grupo(contacto: list):
-        # obtener los grupos en donde está contacto
-        grupos_de_contacto = []
-        for índice, grupo in enumerate(contactos_por_grupos):
-            nombre_grupo = grupos[índice]
-            # si el contacto está en el grupo de contactos_por grupos
-            # y el respectivo nombre de ese grupo hace match, es verdadero
-            if (contacto[0], contacto[1]) in grupo and filtro_grupo.match(nombre_grupo):
-                return True
-
-        # si no existe tal grupo, retorna falso
-        return False
-
-    # filtro de grupo
-    if filtro_grupo:
-        contactos_finales = [c for c in contactos_finales if func_filtro_grupo(c)]
-
-    # TODO: transferirlo a un PDF con columnas
-    print("--- resultado (debug) ---")
-    for c in contactos_finales:
-        print(c)
-    input()
+                webbrowser.open(nombre_archivo)
+                break
+            except Exception as error:
+                print(error)
+                input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
 
 ########################################
@@ -1332,6 +1348,47 @@ def generar_patrón_regex(string: str):
     # funciona para ignorarlas tanto en el patrón como en el objetivo
     return re.compile(string_nuevo, re.IGNORECASE)
 
+
+"""
+generar una tabla con información de los contactos
+en un PDF usando PLATYPUS de la librería reportlab
+
+entrada: nombre de archivo como string, lista de contactos
+salida: None, pero genera un PDF
+"""
+def generar_tabla_pdf(nombre_archivo: str, contactos: list):
+    # matriz con sus encabezados, se le añaden los contactos al final
+    datos = [
+        ["Número de teléfono", "Área", "Tipo", "Nombre", "Correo electrónico",
+        "Dirección física", "Fecha de nacimiento", "Pasatiempos", "Notas"]
+    ] + contactos
+
+    # crear un nuevo documento con el nombre dado, tamaño carta, en modo horizontal
+    doc = SimpleDocTemplate(nombre_archivo, pagesize=landscape(letter))
+
+    # lista de elementos que PLATYPUS interpreta (párrafos, tablas, etc)
+    flowables = []
+
+    # estilos de texto
+    estilos_texto = getSampleStyleSheet()
+
+    # estilo de la tabla
+    estilos_tabla = TableStyle([
+        # tuplas       (columna, fila)
+        # -1 lleva el estilo hasta la última columna/fila
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("0xB0C4DE"))
+    ])
+    
+    texto_1 = Paragraph("Lista digital de contactos", style=estilos_texto["Heading1"])
+    texto_2 = Paragraph("Tabla de contactos según filtros", style=estilos_texto["Heading2"])
+    flowables += [texto_1, texto_2]
+
+    # crear tabla, ponerle el estilo y colocarla en los flowables
+    tabla = Table(datos)
+    tabla.setStyle(estilos_tabla)
+    flowables.append(tabla)
+
+    doc.build(flowables)
 
 ########################################
 # Pruebas ##############################
