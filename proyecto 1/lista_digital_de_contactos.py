@@ -199,9 +199,7 @@ def áreas_agregar():
                 input("[ERROR] El nombre de área debe ser entre 1 y 40 caracteres. Presione <INTRO> ")
                 continue
 
-            confirmación = input("OPCIÓN    <A>Aceptar    <C>Cancelar  ")
-
-            if confirmación == "A":
+            if confirmar():
                 areas.append((número, nombre))
                 dict_áreas[número] = len(areas) - 1
 
@@ -246,7 +244,8 @@ def áreas_consultar():
             print()
             print("Nombre del área" + " " * 5 + nombre)
 
-            input("OPCIÓN    <A>Aceptar  ")
+            # confirmar pero solo permitir el valor de aceptar
+            confirmar(solo_aceptar = True)
 
         # sucede cuando número no se puede convertir a int
         except ValueError:
@@ -297,9 +296,7 @@ def áreas_modificar():
                 input("[ERROR] El nuevo nombre debe ser entre 1 y 40 caracteres. Presione <INTRO> ")
                 continue
 
-            confirmación = input("OPCIÓN    <A>Aceptar  <C>Cancelar ")
-
-            if confirmación == "A":
+            if confirmar():
                 areas[dict_áreas[número]] = (número, nuevo)
 
         # sucede cuando número no se puede convertir a int
@@ -355,9 +352,7 @@ def áreas_eliminar():
             print()
             print("Nombre del área" + " " * 5 + areas[índice][1])
 
-            confirmación = input("CONFIRMA LA ELIMINACIÓN    <A>Aceptar  <C>Cancelar ")
-
-            if confirmación == "A":
+            if confirmar("CONFIRMA LA ELIMINACIÓN"):
                 del areas[índice]
                 construir_diccionarios()
 
@@ -422,9 +417,7 @@ def menú_config_contactos():
     
     # parte 3: confirmar los valores
     print()
-    confirmación = input("OPCIÓN    <A>Aceptar  <C>Cancelar  ")
-
-    if confirmación == "A":
+    if confirmar():
         área_por_defecto = área
         tipo_por_defecto = tipo    
 
@@ -588,9 +581,7 @@ def contactos_agregar():
 
     # parte 9: confirmar
     print()
-    confirmación = input("OPCIÓN  <A>Aceptar <C>Cancelar  ")
-
-    if confirmación == "A":
+    if confirmar():
         contactos.append(contacto)
         dict_contactos[(telf, área)] = len(contactos) - 1
         
@@ -634,7 +625,8 @@ def contactos_consultar():
             print("Pasatiempos              " + contacto[7])
             print("Notas                    " + contacto[8] + "\n")
 
-            input("OPCIÓN    <A>Aceptar  ")
+            # confirmar, pero solo permitir el valor de aceptar
+            confirmar(solo_aceptar = True)
 
         # sucede cuando teléfono o área no se puede convertir a int
         except ValueError:
@@ -772,9 +764,7 @@ def contactos_modificar():
                     input("[ERROR] Las notas deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
                 
 
-            confirmación = input("OPCIÓN    <A>Aceptar  <C>Cancelar ")
-
-            if confirmación == "A":
+            if confirmar():
                 contactos[dict_contactos[(telf, área)]] = contacto
 
         # sucede cuando teléfono o área no se puede convertir a int
@@ -826,9 +816,7 @@ def contactos_eliminar():
             print("Pasatiempos              " + contacto[7])
             print("Notas                    " + contacto[8] + "\n")
 
-            confirmación = input("CONFIRMA LA ELIMINACIÓN    <A>Aceptar  <C>Cancelar ")
-
-            if confirmación == "A":
+            if confirmar("CONFIRMA LA ELIMINACIÓN"):
                 del contactos[índice_contacto]
                 construir_diccionarios()
 
@@ -912,9 +900,7 @@ def grupos_agregar():
             input("Este grupo ya está registrado, no se puede agregar. Presione <INTRO> ")
         else:
             print()
-            confirmación = input("OPCIÓN    <A>Aceptar <C>Cancelar ")
-            
-            if confirmación == "A":
+            if confirmar():
                 # agrega tanto el nombre como una lista vacía de contactos
                 grupos.append(nombre)
                 contactos_por_grupos.append([])
@@ -956,11 +942,8 @@ def grupos_agregar_contacto():
             print(" " * 20 + areas[dict_áreas[área]][1])
             print("Nombre contacto" + " " * 5 + contacto[3] + "\n")
 
-            confirmación = input("OPCIÓN  <A>Aceptar  <C>Cancelar ")
-
-            if confirmación == "A":
-                # NOTE: ¿qué hago con duplicados?
-                # por ahora los voy a ignorar
+            if confirmar():
+                # TODO: error cuando hay duplicados
 
                 índice_grupo = grupos.index(nombre)
 
@@ -1003,9 +986,7 @@ def grupos_modificar():
             índice_nuevo = grupos.index(nuevo_nombre)
             print("Grupo ya existe, en caso de aceptar la operación los contactos se le agregarán")
         
-        confirmación = input("OPCIÓN    <A>Aceptar <C>Cancelar ")
-
-        if confirmación == "A":
+        if confirmar():
             if índice_nuevo:
                 # unir ambos en uno, y borrar el otro
 
@@ -1042,9 +1023,7 @@ def grupos_eliminar():
             input("Este grupo no existe, no se puede eliminar. Presione <INTRO> ")
         else:
             print()
-            confirmación = input("CONFIRMA LA ELIMINACIÓN    <A>Aceptar <C>Cancelar ")
-            
-            if confirmación == "A":
+            if confirmar():
                 # agrega tanto el nombre como una lista vacía de contactos
                 índice_grupo = grupos.index(nombre)
 
@@ -1093,9 +1072,7 @@ def grupos_eliminar_contacto():
                 input("Este contacto no existe en el grupo, no puede eliminarlo. Presione <INTRO> ")
                 continue
 
-            confirmación = input("CONFIRMA LA ELIMINACIÓN  <A>Aceptar  <C>Cancelar ")
-
-            if confirmación == "A":
+            if confirmar():
                 índice_contacto = contactos_por_grupos[índice_grupo] \
                     .index((telf, área))
 
@@ -1184,9 +1161,7 @@ def menú_lista_contactos():
         if filtro_grupo:
             contactos_finales = [c for c in contactos_finales if func_filtro_grupo(c)]
 
-        confirmación = input("OPCIÓN    <A>Aceptar    <C>Cancelar  ")
-
-        if confirmación == "A":
+        if confirmar():
             try:
                 nombre_archivo = "tabla_contactos.pdf"
                 generar_tabla_pdf(nombre_archivo, contactos_finales)
@@ -1201,6 +1176,30 @@ def menú_lista_contactos():
 ########################################
 # Funciones auxiliares #################
 ########################################
+
+"""
+pide una confirmación de datos,
+retorna True si se escribe "A", False si se escribe "C", y repite el proceso si no es ninguno de los dos
+si la opción solo_aceptar se activa, solo se permite colocar "A"
+"""
+def confirmar(mensaje = "OPCIÓN", solo_aceptar = False) -> bool:
+    mensaje_conf = mensaje + " " * 4 + "<A>Aceptar  <C>Cancelar "
+    mensaje_error = '[ERROR] La opción debe ser "A" o "C". Presione <INTRO> '
+
+    if solo_aceptar:
+        mensaje_conf = mensaje_conf[:-12]
+        mensaje_error = mensaje_error[:30] + mensaje_error[36:]
+
+    confirmación = input(mensaje_conf)
+
+    if confirmación == "A":
+        return True
+    elif not solo_aceptar and confirmación == "C":
+        return False
+    else:
+        input(mensaje_error)
+        # vuelve a llamar a la función y retorna el valor que esa devuelve (True o False)
+        return confirmar(mensaje, solo_aceptar)
 
 """
 limpia la terminal, con el comando "cls" o "clear" según el sistema operativo
@@ -1219,7 +1218,7 @@ retorna si un área está registrada
 entrada: área como número
 salida: bool
 """
-def área_registrada(área: int):
+def área_registrada(área: int) -> bool:
     for registrada in areas:
         if registrada[0] == área:
             return True
@@ -1249,7 +1248,7 @@ verifica si una fecha es correcta, y retorna "0", -1 o la fecha original, depend
 entrada: fecha como string
 salida: fecha válida como string, o -1 si no es válida, o "0" si está incompleta
 """
-def validar_fecha(fecha: str):
+def validar_fecha(fecha: str) -> str | int:
     if not "/" in fecha:
         return -1
 
@@ -1303,7 +1302,7 @@ parte1@parte2, sin espacios
 entrada: string
 salida: bool
 """
-def verificar_correo(correo: str):
+def verificar_correo(correo: str) -> bool:
     # \S: caracteres que no sean espacios
     # \S+: 1 o más de esos
     # \S+@S+: cccc@cccc
@@ -1322,7 +1321,7 @@ abc -> ^abc$
 entrada: string
 salida: re.Pattern (objeto del patrón de regex) o None
 """
-def generar_patrón_regex(string: str):
+def generar_patrón_regex(string: str) -> re.Pattern | None:
     if not string:
         return None
     
