@@ -40,6 +40,7 @@ dict_áreas = {}
 
 # constante de tipos de teléfono permitidos
 TIPOS_TELEFONO = ("M", "Móvil", "C", "Casa", "T", "Trabajo", "O", "Otro")
+MAPA_TIPOS = { "M": "Móvil", "C": "Casa", "T": "Trabajo", "O": "Otro" }
 
 # área por omisión en la generación de contactos
 área_por_defecto = None
@@ -59,8 +60,13 @@ dict_contactos = {}
 grupos = []
 
 # lista de contactos asociados a cada grupo de la lista anterior
-contactos_por_grupos = []
+contactos_por_grupo = []
 
+# URL del manual de usuario
+URL_MANUAL = "https://youtu.be/QUqCWkPlLLc?t=120"
+
+# versión del proyecto
+VERSIÓN = "0.11.1"
 
 ########################################
 # Funcionalidades base #################
@@ -108,9 +114,9 @@ def menú_principal():
             case "5":
                 menú_lista_contactos()
             case "6":
-                pass
+                menú_ayuda()
             case "7":
-                pass
+                menú_acerca_de()
             case "0":
                 # finalizar el ciclo, y en turno todo el programa
                 break
@@ -352,7 +358,7 @@ def áreas_eliminar():
             print()
             print("Nombre del área" + " " * 5 + areas[índice][1])
 
-            if confirmar("CONFIRMA LA ELIMINACIÓN"):
+            if confirmar() and confirmar("CONFIRMA LA ELIMINACIÓN"):
                 del areas[índice]
                 construir_diccionarios()
 
@@ -411,6 +417,9 @@ def menú_config_contactos():
                 input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
                 print()
                 continue
+            
+            if tipo in MAPA_TIPOS:
+                tipo = MAPA_TIPOS[tipo]
 
             break
     
@@ -522,6 +531,10 @@ def contactos_agregar():
         if tipo not in TIPOS_TELEFONO:
             input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
         else:
+            # pasar M, T, C, O a sus descripciones
+            if tipo in MAPA_TIPOS:
+                tipo = MAPA_TIPOS[tipo]
+
             contacto.append(tipo)
 
     # parte 3: nombre de contacto
@@ -686,6 +699,10 @@ def contactos_modificar():
                 if not tipo:
                     break
                 elif tipo in TIPOS_TELEFONO:
+                    # pasar M, T, C, O a sus descripciones
+                    if tipo in MAPA_TIPOS:
+                        tipo = MAPA_TIPOS[tipo]
+
                     contacto[2] = tipo
                     break
                 else:
@@ -815,12 +832,27 @@ def contactos_eliminar():
             print("Fecha de nacimiento      " + contacto[6])
             print("Pasatiempos              " + contacto[7])
             print("Notas                    " + contacto[8] + "\n")
+            
+            # una lista con los índices de los grupos en los que está el contacto
+            grupos_de_contacto = []
+            for i, grupo in enumerate(contactos_por_grupo):
+                if (telf, área) in grupo:
+                    grupos_de_contacto.append(i)
+
+            # actúa como bloqueo si existen grupos asociados
+            if grupos_de_contacto and not confirmar("Este contacto está asociado a grupos, por lo que se borrará al contacto de ellos. Confirme este procedimiento."):
+                continue
 
             if confirmar("CONFIRMA LA ELIMINACIÓN"):
                 del contactos[índice_contacto]
-                construir_diccionarios()
 
-            # TODO: confirmar eliminación de grupos
+                # si no hay grupos asociados, este ciclo no corre
+                for i_grupo in grupos_de_contacto:
+                    # el índice del contacto en cada lista de contactos por grupo
+                    j_contacto = contactos_por_grupo[i_grupo].index((telf, área))
+                    del contactos_por_grupo[i_grupo][j_contacto]
+
+                construir_diccionarios()
 
         # sucede cuando teléfono o área no se puede convertir a int
         except ValueError:
@@ -903,7 +935,7 @@ def grupos_agregar():
             if confirmar():
                 # agrega tanto el nombre como una lista vacía de contactos
                 grupos.append(nombre)
-                contactos_por_grupos.append([])
+                contactos_por_grupo.append([])
 
 """
 funcionalidad 4.2: agregar contactos a grupos
@@ -936,19 +968,21 @@ def grupos_agregar_contacto():
                     input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
                 else:
                     break
-
+            
+            índice_grupo = grupos.index(nombre)
             contacto = contactos[dict_contactos[(telf, área)]]
+
+            # mandar un error en caso de duplicados
+            if (telf, área) in contactos_por_grupo[índice_grupo]:
+                input("Este contacto ya está registrado en el grupo, no se puede añadir. Presione <INTRO> ")
+                continue
 
             print(" " * 20 + areas[dict_áreas[área]][1])
             print("Nombre contacto" + " " * 5 + contacto[3] + "\n")
 
             if confirmar():
-                # TODO: error cuando hay duplicados
-
-                índice_grupo = grupos.index(nombre)
-
-                if (telf, área) not in contactos_por_grupos[índice_grupo]:
-                    contactos_por_grupos[índice_grupo].append((telf, área))
+                if (telf, área) not in contactos_por_grupo[índice_grupo]:
+                    contactos_por_grupo[índice_grupo].append((telf, área))
 
         except ValueError:
             input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
@@ -991,13 +1025,13 @@ def grupos_modificar():
                 # unir ambos en uno, y borrar el otro
 
                 # hacer una unión de sets, para no tener posibles duplicados
-                set_nuevos_contactos = set(contactos_por_grupos[índice_original]) \
-                    .union(set(contactos_por_grupos[índice_nuevo]))
+                set_nuevos_contactos = set(contactos_por_grupo[índice_original]) \
+                    .union(set(contactos_por_grupo[índice_nuevo]))
 
                 # pasar el set -> list, asignarlo al original
-                contactos_por_grupos[índice_original] = list(set_nuevos_contactos)
+                contactos_por_grupo[índice_original] = list(set_nuevos_contactos)
                 del grupos[índice_nuevo]
-                del contactos_por_grupos[índice_nuevo]
+                del contactos_por_grupo[índice_nuevo]
 
             # sin importar el nuevo índice, se debe cambiar el nombre
             grupos[índice_original] = nuevo_nombre
@@ -1023,12 +1057,12 @@ def grupos_eliminar():
             input("Este grupo no existe, no se puede eliminar. Presione <INTRO> ")
         else:
             print()
-            if confirmar():
+            if confirmar() and confirmar("CONFIRMA LA ELIMINACIÓN"):
                 # agrega tanto el nombre como una lista vacía de contactos
                 índice_grupo = grupos.index(nombre)
 
                 del grupos[índice_grupo]
-                del contactos_por_grupos[índice_grupo]
+                del contactos_por_grupo[índice_grupo]
 
 """
 funcionalidad 4.5: eliminar contactos de grupos
@@ -1068,15 +1102,15 @@ def grupos_eliminar_contacto():
             print("Nombre contacto" + " " * 5 + contacto[3] + "\n")
 
             print()
-            if (telf, área) not in contactos_por_grupos[índice_grupo]:
+            if (telf, área) not in contactos_por_grupo[índice_grupo]:
                 input("Este contacto no existe en el grupo, no puede eliminarlo. Presione <INTRO> ")
                 continue
 
-            if confirmar():
-                índice_contacto = contactos_por_grupos[índice_grupo] \
+            if confirmar() and confirmar("CONFIRMA LA ELIMINACIÓN"):
+                índice_contacto = contactos_por_grupo[índice_grupo] \
                     .index((telf, área))
 
-                del contactos_por_grupos[índice_grupo][índice_contacto]
+                del contactos_por_grupo[índice_grupo][índice_contacto]
 
         except ValueError:
             input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
@@ -1147,7 +1181,7 @@ def menú_lista_contactos():
         def func_filtro_grupo(contacto: list):
             # obtener los grupos en donde está contacto
             grupos_de_contacto = []
-            for índice, grupo in enumerate(contactos_por_grupos):
+            for índice, grupo in enumerate(contactos_por_grupo):
                 nombre_grupo = grupos[índice]
                 # si el contacto está en el grupo de contactos_por grupos
                 # y el respectivo nombre de ese grupo hace match, es verdadero
@@ -1172,6 +1206,38 @@ def menú_lista_contactos():
                 print(error)
                 input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
 
+"""
+funcionalidad 6: muestra el manual de usuario (como es un video, lo abre en el navegador)
+"""
+def menú_ayuda():
+    limpiar_terminal()
+
+    print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+    print(" " * 10 + "AYUDA" + "\n")
+
+    webbrowser.open(URL_MANUAL)
+
+    print("Si no se abre el video, puede insertar el URL en su navegador: " + URL_MANUAL)
+    confirmar(solo_aceptar=True)
+
+
+"""
+funcionalidad 7: información del programa
+"""
+def menú_acerca_de():
+    limpiar_terminal()
+
+    # al lado derecho imprime un pequeñito teléfono
+    print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+    print(" " * 10 + "ACERCA DE" + "\n")
+
+    print("Versión: " + VERSIÓN + " " * (41 - len(VERSIÓN)) +      " _____")
+    print("Fecha de creación: " + "2024/04/13" + " " * 21 +        "(.---.)-._.-.")
+    print("Autor: " + "Fernando González Robles" + " " * 19 +      " /:::\ _.---'")
+    print("Programa 1 - IC1803 Taller de Programación" + " " * 8 + "'-----'")
+    print()
+    confirmar(solo_aceptar=True)
+
 
 ########################################
 # Funciones auxiliares #################
@@ -1181,6 +1247,9 @@ def menú_lista_contactos():
 pide una confirmación de datos,
 retorna True si se escribe "A", False si se escribe "C", y repite el proceso si no es ninguno de los dos
 si la opción solo_aceptar se activa, solo se permite colocar "A"
+
+entrada: string de mensaje (default es "OPCIÓN"), bool de solo tener opción de aceptar (default es falso)
+salida: bool, o repite el proceso
 """
 def confirmar(mensaje = "OPCIÓN", solo_aceptar = False) -> bool:
     mensaje_conf = mensaje + " " * 4 + "<A>Aceptar  <C>Cancelar "
@@ -1327,6 +1396,7 @@ def generar_patrón_regex(string: str) -> re.Pattern | None:
     
     # NOTE: ¿qué hago si hay más de 3 %? (es inválido)
     # por ahora lo devuelvo sin filtro, entonces lo saltaría
+    # mejor, devolver un error
     if string.count("%") > 3:
         return None
 
@@ -1399,7 +1469,7 @@ contactos = [
     [87478747, 507, 'C', 'jaimito', 'j@jjj.com', 'casa', '2/5/1876', 'cosas', 'lol']
 ]
 grupos = ["lol"]
-contactos_por_grupos = [[(12341234, 506)]]
+contactos_por_grupo = [[(12341234, 506)]]
 área_por_defecto = 506
 tipo_por_defecto = "M"
 construir_diccionarios()
