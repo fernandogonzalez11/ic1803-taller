@@ -27,6 +27,9 @@ from reportlab.lib.styles import getSampleStyleSheet
 # usado para abrir un PDF en el programa designado para tal
 import webbrowser
 
+# usado para obtener el tiempo actual
+import datetime
+
 ########################################
 # Variables principales ################
 ########################################
@@ -628,6 +631,9 @@ def contactos_consultar():
             # encontrar el contacto asociado al teléfono
             contacto = contactos[dict_contactos[(telf, área)]]
 
+            # lista de grupos a los que pertenece
+            lista_grupos = grupos_de_contacto(contacto)
+
             # imprimir todos los valores
             print(" " * 25 + areas[dict_áreas[área]][1])
             print("Tipo teléfono (M,C,T,O)  " + contacto[2])
@@ -636,13 +642,16 @@ def contactos_consultar():
             print("Dirección física         " + contacto[5])
             print("Fecha de nacimiento      " + contacto[6])
             print("Pasatiempos              " + contacto[7])
-            print("Notas                    " + contacto[8] + "\n")
+            print("Notas                    " + contacto[8])
+            
+            if lista_grupos:
+                print("Grupos                   " + ", ".join(lista_grupos) + "\n")
 
             # confirmar, pero solo permitir el valor de aceptar
             confirmar(solo_aceptar = True)
 
         # sucede cuando teléfono o área no se puede convertir a int
-        except ValueError:
+        except ValueError as error:
             input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
         # imprimir y manifestar cualquier otro error
         except Exception as error:
@@ -1147,9 +1156,12 @@ def menú_lista_contactos():
         contactos_finales = contactos
 
         # todos los filtros excepto el de grupo
-        for filtro in filtros:
+        i = 0
+        while i < len(filtros):
+            filtro = filtros[i]
+
             # si el filtro no es None
-            if filtro[1] != None:
+            if filtro[1] != None and filtro[1] != -1:
                 """
                 toma el valor de contacto en el índice del filtro y lo compara con el patrón del filtro respectivo
                 devuelve un bool dependiendo de si hay match con el patrón
@@ -1170,6 +1182,14 @@ def menú_lista_contactos():
                 # se filtran los únicos elementos que cumplan el filtro respectivo
                 contactos_finales = [c for c in contactos_finales if func_filtro_individual(c)]
 
+            elif filtro[1] == -1:
+                input("[ERROR] El filtro es incorrecto (tiene más de 3 comodines). Presione <INTRO> ")
+                continue
+
+            i += 1
+
+
+
         """
         retorna si el contacto está en un grupo que tiene match con el regex del filtro de grupo
 
@@ -1178,14 +1198,13 @@ def menú_lista_contactos():
 
         función local, solo para uso de su pariente
         """
-        def func_filtro_grupo(contacto: list):
+        def func_filtro_grupo(contacto: tuple):
             # obtener los grupos en donde está contacto
-            grupos_de_contacto = []
-            for índice, grupo in enumerate(contactos_por_grupo):
-                nombre_grupo = grupos[índice]
-                # si el contacto está en el grupo de contactos_por grupos
+            lista_grupos = grupos_de_contacto(contacto)
+
+            for grupo in enumerate(lista_grupos):
                 # y el respectivo nombre de ese grupo hace match, es verdadero
-                if (contacto[0], contacto[1]) in grupo and filtro_grupo.match(nombre_grupo):
+                if filtro_grupo.match(nombre_grupo):
                     return True
 
             # si no existe tal grupo, retorna falso
@@ -1197,7 +1216,11 @@ def menú_lista_contactos():
 
         if confirmar():
             try:
-                nombre_archivo = "tabla_contactos.pdf"
+                tiempo = datetime.datetime.now()
+                # formatear el tiempo para que sea colocable en un archivo
+                tiempo_str = tiempo.strftime("_%Y%m%d_%H%M")
+
+                nombre_archivo = "tabla_contactos" + tiempo_str + ".pdf"
                 generar_tabla_pdf(nombre_archivo, contactos_finales)
                 
                 webbrowser.open(nombre_archivo)
@@ -1388,17 +1411,15 @@ abc -> ^abc$
 %ab%c% -> .*ab.*c$
 
 entrada: string
-salida: re.Pattern (objeto del patrón de regex) o None
+salida: re.Pattern (objeto del patrón de regex), None o -1 (error)
 """
-def generar_patrón_regex(string: str) -> re.Pattern | None:
+def generar_patrón_regex(string: str) -> re.Pattern | None | int:
     if not string:
         return None
     
-    # NOTE: ¿qué hago si hay más de 3 %? (es inválido)
-    # por ahora lo devuelvo sin filtro, entonces lo saltaría
-    # mejor, devolver un error
+    # si hay más de 3 %, devuelve un error
     if string.count("%") > 3:
-        return None
+        return -1
 
     # escapar caracteres especiales de regex
     string_nuevo = ""
@@ -1454,10 +1475,27 @@ def generar_tabla_pdf(nombre_archivo: str, contactos: list):
 
     # crear tabla, ponerle el estilo y colocarla en los flowables
     tabla = Table(datos)
+
     tabla.setStyle(estilos_tabla)
     flowables.append(tabla)
 
     doc.build(flowables)
+
+"""
+genera una lista con los nombres de los grupos en los que está un contacto
+el contacto puede ser abreviado o completo
+
+entrada: contacto como tupla
+salida: lista de nombres de grupos a los que pertenece
+"""
+def grupos_de_contacto(contacto: tuple) -> list:
+    lista_grupos = []
+    for i, grupo in enumerate(contactos_por_grupo):
+        # agarrar los primeros dos valores solamente y convertirlos a una tupla
+        if tuple(contacto[:2]) in grupo:
+            lista_grupos.append(grupos[i])
+
+    return lista_grupos
 
 ########################################
 # Pruebas ##############################
