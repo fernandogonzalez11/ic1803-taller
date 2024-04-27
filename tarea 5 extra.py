@@ -147,3 +147,32 @@ def multiplica_matrices(matriz_1, matriz_2):
                 matriz_resultante[i][j] += matriz_1[i][k] * matriz_2[k][j]
 
     return matriz_resultante
+
+# ej 18
+def materias_y_estudiantes(estudiantes):
+    materias = []
+
+    for estudiante in estudiantes:
+        # para cada tupla de materia contenida en el estudiante
+        for tupla_materia in estudiante[2:]:
+            # construir la tupla formateada para la lista de materias
+            tupla_formateada = (estudiante[0], estudiante[1], tupla_materia[0])
+
+            # encontrar el índice de la materia en cuestión, si existe
+            ind = índice_en_materias(tupla_materia[1], materias)
+
+            if ind != -1:
+                # añadirlo al índice indicado si existe
+                materias[ind].append(tupla_formateada)
+            else:
+                # crear un nuevo elemento si no
+                materias.append([tupla_materia[1], tupla_formateada])
+
+    return materias
+
+def índice_en_materias(materia, materias):
+    for i, m in enumerate(materias):
+        if m[0] == materia:
+            return i
+    else:
+        return -1
