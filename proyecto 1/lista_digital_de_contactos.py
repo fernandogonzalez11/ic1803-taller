@@ -69,7 +69,7 @@ contactos_por_grupo = []
 URL_MANUAL = "https://youtu.be/QUqCWkPlLLc?t=120"
 
 # versión del proyecto
-VERSIÓN = "0.11.1"
+VERSIÓN = "0.12.1"
 
 ########################################
 # Funcionalidades base #################
@@ -391,7 +391,10 @@ def menú_config_contactos():
     while True:
         try:
             área = input("Área por omisión:" + " " * 5)
-            
+
+            if área == "C":
+                return
+
             área = int(área)
 
             # verificar que esté registrado
@@ -509,7 +512,7 @@ def contactos_agregar():
             else:
                 área = int(área)
 
-            if telf < pow(10, 5) or telf > pow(10, 12):
+            if telf < pow(10, 4) or telf >= pow(10, 12):
                 input("El teléfono debe ser de 5 a 12 dígitos. Presione <INTRO> ")
             elif área not in dict_áreas:
                 input("Esta área no está registrada, no se puede seleccionar. Presione <INTRO> ")
@@ -1143,14 +1146,14 @@ def menú_lista_contactos():
         # pide pada filtro secuencialmente y los popula automáticamente en una lista
         # cada filtro está asociado al índice del campo que trata
         # excepto el filtro de grupo; se trata diferente
+
         filtros = [
-            (3, generar_patrón_regex(input("Filtros:  Nombre contacto      "))),
-            (0, generar_patrón_regex(input("          Teléfono             "))),
-            (1, generar_patrón_regex(input("          Área                 "))),
-            (6, generar_patrón_regex(input("          Fecha de nacimiento  "))),
-            (7, generar_patrón_regex(input("          Pasatiempos          "))),
+            (3, "Filtros:  Nombre contacto      "),
+            (0, "          Teléfono             "),
+            (1, "          Área                 "),
+            (6, "          Fecha de nacimiento  "),
+            (7, "          Pasatiempos          "),
         ]
-        filtro_grupo = generar_patrón_regex(input("          Grupo                "))
 
         # hecho un iterador para mantener la consistencia (pues filter() retorna iteradores)
         contactos_finales = contactos
@@ -1160,8 +1163,15 @@ def menú_lista_contactos():
         while i < len(filtros):
             filtro = filtros[i]
 
+            entrada = input(filtro[1])
+
+            if i == 0 and entrada == "C":
+                return
+
+            entrada = generar_patrón_regex(entrada)
+
             # si el filtro no es None
-            if filtro[1] != None and filtro[1] != -1:
+            if entrada != None and entrada != -1:
                 """
                 toma el valor de contacto en el índice del filtro y lo compara con el patrón del filtro respectivo
                 devuelve un bool dependiendo de si hay match con el patrón
@@ -1172,9 +1182,9 @@ def menú_lista_contactos():
                 función local al ciclo for
                 """
                 def func_filtro_individual(contacto: list):
-                    índice, patrón = filtro
+                    índice = filtro[0]
 
-                    if patrón.match(str(contacto[índice])):
+                    if entrada.match(str(contacto[índice])):
                         return True
                     
                     return False
@@ -1182,13 +1192,19 @@ def menú_lista_contactos():
                 # se filtran los únicos elementos que cumplan el filtro respectivo
                 contactos_finales = [c for c in contactos_finales if func_filtro_individual(c)]
 
-            elif filtro[1] == -1:
+            elif entrada == -1:
                 input("[ERROR] El filtro es incorrecto (tiene más de 3 comodines). Presione <INTRO> ")
                 continue
+            
 
             i += 1
 
-
+        # filtro de grupo
+        filtro_grupo = -1
+        while filtro_grupo == -1:
+            filtro_grupo = generar_patrón_regex(input("          Grupo                "))
+            if filtro_grupo == -1:
+                input("[ERROR] El filtro es incorrecto (tiene más de 3 comodines). Presione <INTRO> ")
 
         """
         retorna si el contacto está en un grupo que tiene match con el regex del filtro de grupo
@@ -1202,15 +1218,15 @@ def menú_lista_contactos():
             # obtener los grupos en donde está contacto
             lista_grupos = grupos_de_contacto(contacto)
 
-            for grupo in enumerate(lista_grupos):
+            for grupo in lista_grupos:
                 # y el respectivo nombre de ese grupo hace match, es verdadero
-                if filtro_grupo.match(nombre_grupo):
+                if filtro_grupo.match(grupo):
                     return True
 
             # si no existe tal grupo, retorna falso
             return False
 
-        # filtro de grupo
+
         if filtro_grupo:
             contactos_finales = [c for c in contactos_finales if func_filtro_grupo(c)]
 
@@ -1500,7 +1516,8 @@ def grupos_de_contacto(contacto: tuple) -> list:
 ########################################
 # Pruebas ##############################
 ########################################
-areas = [(502, "Guatemala"), (506, "Costa Rica"), (507, "Nicaragua")]
+
+""" areas = [(502, "Guatemala"), (506, "Costa Rica"), (507, "Nicaragua")]
 contactos = [
     [12341234, 506, 'M', 'a', 'b@c.com', '', '11/11/2006', '', ''],
     [24683579, 502, 'T', 'jorge', 'jorge@business.com', 'pérez zeledón', '3/5/1990', 'hacer de jorge', 'es jorge'],
@@ -1511,6 +1528,20 @@ contactos_por_grupo = [[(12341234, 506)]]
 área_por_defecto = 506
 tipo_por_defecto = "M"
 construir_diccionarios()
+ """
+areas = [(502, 'Guatemala'), (506, 'Costa Rica')]
+contactos = [
+    [80408040, 506, 'Móvil', 'Fernando González', 'fernando@gonzalez.org', '', '11/11/2006', 'leer, jugar', 'computín'],
+    [85208520, 502, 'Trabajo', 'Javier González', 'javier@gonzalez.org', '', '31/07/0000', '', ''],
+    [25502254, 506, 'Trabajo', 'William Mata', 'wmata@itcr.ac.cr', '', '03/02/0000', '', 'intro y taller'],
+    [25502307, 506, 'Trabajo', 'Jorge Vargas', 'avargas@itcr.ac.cr', '', '28/09/0000', '', 'foc'],
+    [46464646, 506, 'Móvil', 'Sebastián Padilla', 's@padilla.com', '', '13/10/2005', '', 'compañero de intro y foc'],
+    [45645645, 506, 'Móvil', 'Mauricio González', 'mgonz@alez.net', '', '13/12/2004', '', 'compañero de intro']
+]
+grupos = ['compañeros', 'profes', 'familia']
+contactos_por_grupo = [[(46464646, 506), (45645645, 506)], [(25502254, 506), (25502307, 506)], [(85208520, 502)]]
+construir_diccionarios()
+
 
 
 ########################################
