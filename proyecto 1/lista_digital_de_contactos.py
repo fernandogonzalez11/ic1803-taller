@@ -43,7 +43,6 @@ dict_áreas = {}
 
 # constante de tipos de teléfono permitidos
 TIPOS_TELEFONO = ("M", "Móvil", "C", "Casa", "T", "Trabajo", "O", "Otro")
-MAPA_TIPOS = { "M": "Móvil", "C": "Casa", "T": "Trabajo", "O": "Otro" }
 
 # área por omisión en la generación de contactos
 área_por_defecto = None
@@ -66,10 +65,10 @@ grupos = []
 contactos_por_grupo = []
 
 # URL del manual de usuario
-URL_MANUAL = "https://youtu.be/QUqCWkPlLLc?t=120"
+URL_MANUAL = "https://youtu.be/cByPqUmF3MQ"
 
 # versión del proyecto
-VERSIÓN = "0.12.1"
+VERSIÓN = "0.12.2"
 
 ########################################
 # Funcionalidades base #################
@@ -424,8 +423,9 @@ def menú_config_contactos():
                 print()
                 continue
             
-            if tipo in MAPA_TIPOS:
-                tipo = MAPA_TIPOS[tipo]
+            posible_ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
+            if posible_ind_abreviatura != -1:
+                tipo = TIPOS_TELEFONO[posible_ind_abreviatura * 2 + 1]
 
             break
     
@@ -485,124 +485,126 @@ funcionalidad 3.1: agregar contactos
 pide los diferentes campos para llenar. no necesariamente se llenan todos, para ello hay defaults
 """
 def contactos_agregar():
-    limpiar_terminal()
+    while True:
+        limpiar_terminal()
 
-    # 10 espacios, título, nueva línea adicional
-    print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
-    print(" " * 10 + "REGISTRAR CONTACTOS: AGREGAR" + "\n")
+        # 10 espacios, título, nueva línea adicional
+        print(" " * 10 + "LISTA DIGITAL DE CONTACTOS" + "\n")
+        print(" " * 10 + "REGISTRAR CONTACTOS: AGREGAR" + "\n")
 
-    contacto = []
+        contacto = []
 
-    # parte 1: pedir el teléfono (número y área)
-    # teléfono: número natural de 5 a 12 dígitos
-    # área: número natural entre 1 y 999
-    while len(contacto) < 2:
-        try:
-            telf = input("Teléfono" + " " * 17)
+        # parte 1: pedir el teléfono (número y área)
+        # teléfono: número natural de 5 a 12 dígitos
+        # área: número natural entre 1 y 999
+        while len(contacto) < 2:
+            try:
+                telf = input("Teléfono" + " " * 17)
 
-            if telf == "C":
-                return
+                if telf == "C":
+                    return
+                else:
+                    telf = int(telf)
+
+                área = input("Área" + " " * 21)
+
+                if not área:
+                    área = área_por_defecto
+                else:
+                    área = int(área)
+
+                if telf < pow(10, 4) or telf >= pow(10, 12):
+                    input("El teléfono debe ser de 5 a 12 dígitos. Presione <INTRO> ")
+                elif área not in dict_áreas:
+                    input("Esta área no está registrada, no se puede seleccionar. Presione <INTRO> ")
+                elif (telf, área) in dict_contactos:
+                    input("Este teléfono ya está registrado, no se puede agregar. Presione <INTRO> ")
+                else:
+                    contacto += [telf, área]
+                    print(" " * 25 + areas[dict_áreas[área]][1])
+
+            except ValueError:
+                input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
+            except Exception as error:
+                input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
+
+        # parte 2: tipo de teléfono
+        while len(contacto) < 3:
+            tipo = input("Tipo teléfono (M,C,T,O)" + " " * 2)
+
+            if not tipo:
+                tipo = tipo_por_defecto
+            
+            if tipo not in TIPOS_TELEFONO:
+                input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
             else:
-                telf = int(telf)
+                # pasar M, T, C, O a sus descripciones
+                posible_ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
+                if posible_ind_abreviatura != -1:
+                    tipo = TIPOS_TELEFONO[posible_ind_abreviatura * 2 + 1]
 
-            área = input("Área" + " " * 21)
+                contacto.append(tipo)
 
-            if not área:
-                área = área_por_defecto
+        # parte 3: nombre de contacto
+        while len(contacto) < 4:
+            nombre = input("Nombre contacto" + " " * 10)
+
+            if len(nombre) < 1 or len(nombre) > 50:
+                input("[ERROR] El nombre del contacto debe ser entre 1 y 50 caracteres. Presione <INTRO> ")
             else:
-                área = int(área)
+                contacto.append(nombre)
 
-            if telf < pow(10, 4) or telf >= pow(10, 12):
-                input("El teléfono debe ser de 5 a 12 dígitos. Presione <INTRO> ")
-            elif área not in dict_áreas:
-                input("Esta área no está registrada, no se puede seleccionar. Presione <INTRO> ")
-            elif (telf, área) in dict_contactos:
-                input("Este teléfono ya está registrado, no se puede agregar. Presione <INTRO> ")
+        # parte 4: correo electrónico
+        while len(contacto) < 5:
+            correo = input("Correo electrónico" + " " * 7)
+
+            if not verificar_correo(correo):
+                input("El correo no es válido. Presione <INTRO> ")
             else:
-                contacto += [telf, área]
-                print(" " * 25 + areas[dict_áreas[área]][1])
+                contacto.append(correo)
 
-        except ValueError:
-            input("[ERROR] El número y área de teléfono deben ser números. Presione <INTRO> ")
-        except Exception as error:
-            input("[ERROR] Sucedió un error no previsto. Presione <INTRO> ")
+        # parte 5: dirección física
+        while len(contacto) < 6:
+            dirección = input("Dirección física" + " " * 9)
 
-    # parte 2: tipo de teléfono
-    while len(contacto) < 3:
-        tipo = input("Tipo teléfono (M,C,T,O)" + " " * 2)
-
-        if not tipo:
-            tipo = tipo_por_defecto
+            if len(dirección) > 80:
+                input("[ERROR] La dirección física debe ser entre 0 y 80 caracteres. Presione <INTRO> ")
+            else:
+                contacto.append(dirección)
+            
+        # parte 6: fecha de nacimiento
+        while len(contacto) < 7:
+            nacimiento = input("Fecha de nacimiento" + " " * 6)
         
-        if tipo not in TIPOS_TELEFONO:
-            input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
-        else:
-            # pasar M, T, C, O a sus descripciones
-            if tipo in MAPA_TIPOS:
-                tipo = MAPA_TIPOS[tipo]
+            posible_fecha = validar_fecha(nacimiento)
+            if posible_fecha == -1:
+                input("[ERROR] La fecha no es válida. Presione <INTRO> ")
+            else:
+                contacto.append(posible_fecha)
 
-            contacto.append(tipo)
+        # parte 7: pasatiempos
+        while len(contacto) < 8:
+            pasatiempos = input("Pasatiempos" + " " * 14)
 
-    # parte 3: nombre de contacto
-    while len(contacto) < 4:
-        nombre = input("Nombre contacto" + " " * 10)
+            if len(pasatiempos) > 60:
+                input("[ERROR] Los pasatiempos deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
+            else:
+                contacto.append(pasatiempos)
 
-        if len(nombre) < 1 or len(nombre) > 50:
-            input("[ERROR] El nombre del contacto debe ser entre 1 y 50 caracteres. Presione <INTRO> ")
-        else:
-            contacto.append(nombre)
+        # parte 8: notas
+        while len(contacto) < 9:
+            notas = input("Notas" + " " * 20)
 
-    # parte 4: correo electrónico
-    while len(contacto) < 5:
-        correo = input("Correo electrónico" + " " * 7)
+            if len(pasatiempos) > 60:
+                input("[ERROR] Las notas deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
+            else:
+                contacto.append(notas)
 
-        if not verificar_correo(correo):
-            input("El correo no es válido. Presione <INTRO> ")
-        else:
-            contacto.append(correo)
-
-    # parte 5: dirección física
-    while len(contacto) < 6:
-        dirección = input("Dirección física" + " " * 9)
-
-        if len(dirección) > 80:
-            input("[ERROR] La dirección física debe ser entre 0 y 80 caracteres. Presione <INTRO> ")
-        else:
-            contacto.append(dirección)
-        
-    # parte 6: fecha de nacimiento
-    while len(contacto) < 7:
-        nacimiento = input("Fecha de nacimiento" + " " * 6)
-       
-        posible_fecha = validar_fecha(nacimiento)
-        if posible_fecha == -1:
-            input("[ERROR] La fecha no es válida. Presione <INTRO> ")
-        else:
-            contacto.append(posible_fecha)
-
-    # parte 7: pasatiempos
-    while len(contacto) < 8:
-        pasatiempos = input("Pasatiempos" + " " * 14)
-
-        if len(pasatiempos) > 60:
-            input("[ERROR] Los pasatiempos deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
-        else:
-            contacto.append(pasatiempos)
-
-    # parte 8: notas
-    while len(contacto) < 9:
-        notas = input("Notas" + " " * 20)
-
-        if len(pasatiempos) > 60:
-            input("[ERROR] Las notas deben ser entre 0 y 60 caracteres. Presione <INTRO> ")
-        else:
-            contacto.append(notas)
-
-    # parte 9: confirmar
-    print()
-    if confirmar():
-        contactos.append(contacto)
-        dict_contactos[(telf, área)] = len(contactos) - 1
+        # parte 9: confirmar
+        print()
+        if confirmar():
+            contactos.append(contacto)
+            dict_contactos[(telf, área)] = len(contactos) - 1
         
 """
 funcionalidad 3.2: consultar contactos
@@ -695,7 +697,7 @@ def contactos_modificar():
             # longitudes los valores del tipo en adelante
             longitudes = [len(s) for s in contacto[2:]]
             # esto es útil para tener el tamaño adecuado para emular columnas
-            max_long = max(longitudes)
+            max_long = max(20, max(longitudes))
             # ahora, que cada longitud más bien sea el margen
             longitudes = [max_long - longitud + 2 for longitud in longitudes]
 
@@ -712,8 +714,9 @@ def contactos_modificar():
                     break
                 elif tipo in TIPOS_TELEFONO:
                     # pasar M, T, C, O a sus descripciones
-                    if tipo in MAPA_TIPOS:
-                        tipo = MAPA_TIPOS[tipo]
+                    posible_ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
+                    if posible_ind_abreviatura != -1:
+                        tipo = TIPOS_TELEFONO[posible_ind_abreviatura * 2 + 1]
 
                     contacto[2] = tipo
                     break
@@ -1512,37 +1515,6 @@ def grupos_de_contacto(contacto: tuple) -> list:
             lista_grupos.append(grupos[i])
 
     return lista_grupos
-
-########################################
-# Pruebas ##############################
-########################################
-
-""" areas = [(502, "Guatemala"), (506, "Costa Rica"), (507, "Nicaragua")]
-contactos = [
-    [12341234, 506, 'M', 'a', 'b@c.com', '', '11/11/2006', '', ''],
-    [24683579, 502, 'T', 'jorge', 'jorge@business.com', 'pérez zeledón', '3/5/1990', 'hacer de jorge', 'es jorge'],
-    [87478747, 507, 'C', 'jaimito', 'j@jjj.com', 'casa', '2/5/1876', 'cosas', 'lol']
-]
-grupos = ["lol"]
-contactos_por_grupo = [[(12341234, 506)]]
-área_por_defecto = 506
-tipo_por_defecto = "M"
-construir_diccionarios()
- """
-areas = [(502, 'Guatemala'), (506, 'Costa Rica')]
-contactos = [
-    [80408040, 506, 'Móvil', 'Fernando González', 'fernando@gonzalez.org', '', '11/11/2006', 'leer, jugar', 'computín'],
-    [85208520, 502, 'Trabajo', 'Javier González', 'javier@gonzalez.org', '', '31/07/0000', '', ''],
-    [25502254, 506, 'Trabajo', 'William Mata', 'wmata@itcr.ac.cr', '', '03/02/0000', '', 'intro y taller'],
-    [25502307, 506, 'Trabajo', 'Jorge Vargas', 'avargas@itcr.ac.cr', '', '28/09/0000', '', 'foc'],
-    [46464646, 506, 'Móvil', 'Sebastián Padilla', 's@padilla.com', '', '13/10/2005', '', 'compañero de intro y foc'],
-    [45645645, 506, 'Móvil', 'Mauricio González', 'mgonz@alez.net', '', '13/12/2004', '', 'compañero de intro']
-]
-grupos = ['compañeros', 'profes', 'familia']
-contactos_por_grupo = [[(46464646, 506), (45645645, 506)], [(25502254, 506), (25502307, 506)], [(85208520, 502)]]
-construir_diccionarios()
-
-
 
 ########################################
 # Función principal ####################
