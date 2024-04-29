@@ -68,7 +68,7 @@ contactos_por_grupo = []
 URL_MANUAL = "https://youtu.be/cByPqUmF3MQ"
 
 # versión del proyecto
-VERSIÓN = "0.12.2"
+VERSIÓN = "1.0.0"
 
 ########################################
 # Funcionalidades base #################
