@@ -423,9 +423,9 @@ def menú_config_contactos():
                 print()
                 continue
             
-            posible_ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
-            if posible_ind_abreviatura != -1:
-                tipo = TIPOS_TELEFONO[posible_ind_abreviatura * 2 + 1]
+            if tipo in TIPOS_TELEFONO[::2]:
+                ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
+                tipo = TIPOS_TELEFONO[ind_abreviatura * 2 + 1]
 
             break
     
@@ -539,9 +539,9 @@ def contactos_agregar():
                 input("Este tipo de teléfono no existe, no se puede seleccionar. Presione <INTRO> ")
             else:
                 # pasar M, T, C, O a sus descripciones
-                posible_ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
-                if posible_ind_abreviatura != -1:
-                    tipo = TIPOS_TELEFONO[posible_ind_abreviatura * 2 + 1]
+                if tipo in TIPOS_TELEFONO[::2]:
+                    ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
+                    tipo = TIPOS_TELEFONO[ind_abreviatura * 2 + 1]
 
                 contacto.append(tipo)
 
@@ -627,7 +627,12 @@ def contactos_consultar():
             
             telf = int(telf)
 
-            área = int(input("Área" + " " * 21))
+            área = input("Área" + " " * 21)
+
+            if not área:
+                área = área_por_defecto
+            else:
+                área = int(área)
 
             if (telf, área) not in dict_contactos:
                 input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
@@ -684,7 +689,12 @@ def contactos_modificar():
             
             telf = int(telf)
 
-            área = int(input("Área" + " " * 21))
+            área = input("Área" + " " * 21)
+
+            if not área:
+                área = área_por_defecto
+            else:
+                área = int(área)
 
             if (telf, área) not in dict_contactos:
                 input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
@@ -710,13 +720,16 @@ def contactos_modificar():
             # tipo de teléfono
             while True:
                 tipo = input("Tipo teléfono (M,C,T,O)  " + contacto[2] + " " * longitudes[0])
+
+                # cuando no se pone tipo, preferí saltarlo en lugar de cambiarlo al defecto
                 if not tipo:
                     break
-                elif tipo in TIPOS_TELEFONO:
+
+                if tipo in TIPOS_TELEFONO:
                     # pasar M, T, C, O a sus descripciones
-                    posible_ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
-                    if posible_ind_abreviatura != -1:
-                        tipo = TIPOS_TELEFONO[posible_ind_abreviatura * 2 + 1]
+                    if tipo in TIPOS_TELEFONO[::2]:
+                        ind_abreviatura = TIPOS_TELEFONO[::2].index(tipo)
+                        tipo = TIPOS_TELEFONO[ind_abreviatura * 2 + 1]
 
                     contacto[2] = tipo
                     break
@@ -828,7 +841,12 @@ def contactos_eliminar():
             
             telf = int(telf)
 
-            área = int(input("Área" + " " * 21))
+            área = input("Área" + " " * 21)
+
+            if not área:
+                área = área_por_defecto
+            else:
+                área = int(área)
 
             if (telf, área) not in dict_contactos:
                 input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
@@ -977,7 +995,12 @@ def grupos_agregar_contacto():
 
             while True:
                 telf = int(input("Teléfono" + " " * 12))
-                área = int(input("Área" + " " * 16))
+                área = input("Área" + " " * 16)
+
+                if not área:
+                    área = área_por_defecto
+                else:
+                    área = int(área)
 
                 if (telf, área) not in dict_contactos:
                     input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
@@ -1104,7 +1127,12 @@ def grupos_eliminar_contacto():
             
             while True:
                 telf = int(input("Teléfono" + " " * 12))
-                área = int(input("Área" + " " * 16))
+                área = input("Área" + " " * 16)
+
+                if not área:
+                    área = área_por_defecto
+                else:
+                    área = int(área)
 
                 if (telf, área) not in dict_contactos:
                     input("Este contacto no está registrado, no se puede consultar. Presione <INTRO> ")
@@ -1275,7 +1303,7 @@ def menú_acerca_de():
 
     print("Versión: " + VERSIÓN + " " * (41 - len(VERSIÓN)) +      " _____")
     print("Fecha de creación: " + "2024/04/13" + " " * 21 +        "(.---.)-._.-.")
-    print("Autor: " + "Fernando González Robles" + " " * 19 +      " /:::\ _.---'")
+    print("Autor: " + "Fernando González Robles" + " " * 19 +      " /:::\\ _.---'")
     print("Programa 1 - IC1803 Taller de Programación" + " " * 8 + "'-----'")
     print()
     confirmar(solo_aceptar=True)
@@ -1418,7 +1446,7 @@ def verificar_correo(correo: str) -> bool:
     # \S+: 1 o más de esos
     # \S+@S+: cccc@cccc
     # ^\S+@\S+$: no permitir más caracteres fuera de cccc@cccc
-    patrón = re.compile("^\S+@\S+$")
+    patrón = re.compile("^\\S+@\\S+$")
     # fullmatch retorna None o un objeto, pasar eso a bool (False y True, respectivamente)
     return bool(patrón.fullmatch(correo))
 
@@ -1493,7 +1521,7 @@ def generar_tabla_pdf(nombre_archivo: str, contactos: list):
     flowables += [texto_1, texto_2]
 
     # crear tabla, ponerle el estilo y colocarla en los flowables
-    tabla = Table(datos)
+    tabla = Table(datos, longTableOptimize=True)
 
     tabla.setStyle(estilos_tabla)
     flowables.append(tabla)
