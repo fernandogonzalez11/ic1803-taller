@@ -32,6 +32,10 @@ puntos_empatado = 0
 # diccionario con los equipos y su información
 equipos = {}
 
+# lista de tuplas con los juegos establecidos a sus fechas respectivas
+# esta lista se genera automáticamente con la opción 3
+juegos = []
+
 
 ########################################
 # Funcionalidades base #################
@@ -70,20 +74,25 @@ def menú_principal():
             case "2":
                 menú_registrar_equipos()
             case "3":
-                pass
+                menú_crear_calendario()
             case "4":
-                pass
+                menú_consultar_calendario()
             case "5":
                 pass
             case "6":
                 pass
             case "7":
                 pass
+            case "8":
+                pass
+            case "9":
+                pass
             case "0":
                 # finalizar el ciclo, y en turno todo el programa
                 break
             case _:
                 error("La opción digitada no es válida")
+
 
 """
 menú de opción 1: configuración del torneo
@@ -432,6 +441,112 @@ def equipos_eliminar():
             del equipos[código_equipo]
 
 
+"""
+menú de opción 3: crear calendario de juegos
+"""
+def menú_crear_calendario():
+    # permite editar la variable global juegos
+    global juegos
+
+    limpiar_terminal()
+
+    # título, nueva línea adicional
+    print("TORNEOS DE BOLA".center(50))
+    print("CREAR CALENDARIO DE JUEGOS".center(50))
+    print()    
+
+    # verificar que esté configurado y que la longitud de equipos no sea ni más ni menos
+    if equipos_participantes == 0 or len(equipos) != equipos_participantes:
+        error("Debe primero configurar el torneo y añadir la cantidad correspondiente de equipos")
+        return
+
+    print("A continuación se creará automaticamente el calendario de juegos")
+    print()
+
+    # lista de fechas, cada fecha es una tupla que adentro tiene tuplas por partido
+    fechas = []
+
+    # lista con solo los códigos de los equipos (la llave de cada equipo)
+    códigos_equipos = list(equipos.keys())
+
+    # crear una copia de los códigos para manipular manteniendo la original intacta
+    copia_códigos_equipos = códigos_equipos.copy()
+
+    # crear las listas de fechas con un algoritmo de calendarización para un torneo todos contra todos
+    # referencia: https://en.wikipedia.org/wiki/Round-robin_tournament#Circle_method
+    # se desea correr este ciclo por lo menos una vez, para ello el booleano
+
+    ### este ciclo corre hasta que se vuelve a la posición original,
+    ### en cuyo caso se tendrían todas los partidos posibles de la primera ronda en sus fechas
+    ciclo_empezado = False
+    while not ciclo_empezado or copia_códigos_equipos != códigos_equipos:
+        ciclo_empezado = True
+
+        ### paso 1: se asocian los oponentes entre sí siguiendo un ordenamiento que emula una elipse
+        ### ╭ 1 ⎼ 2 ⎼ 3 ⎼ 4 ╮
+        ### │ ⇩   ⇩   ⇩   ⇩ │
+        ### ╰ 8 ⎼ 7 ⎼ 6 ⎼ 5 ╯
+
+        # el índice donde termina una mitad y empieza otra
+        # como se empieza desde i = 0, representa el centro derecho en listas pares
+        centro = len(equipos) // 2
+
+        # primera mitad del inicio hasta el centro (excl.)
+        sección_1 = copia_códigos_equipos[:centro]
+        
+        # segunda mitad del final al centro (incl.), en reversa
+        sección_2 = copia_códigos_equipos[-1 : -centro - 1 : -1]
+
+        # para los partidos, se asocia cada índice de sección_1 con el mismo índice en sección_2
+        # la función zip permite esta funcionalidad (¡y cada par lo devuelve como tuplas!)
+        # zip devuelve una lista, entonces se pasa a tupla
+        fecha = tuple(zip(sección_1, sección_2))
+        fechas.append(fecha)
+
+        ### paso 2: se fija un elemento (el primero o último son los más convenientes)
+        ### y se rotan una posición en modo horario todos los demás elementos
+        ### ╭ 1 ⎼ 8 → 2 → 3 ╮
+        ### │   ↗           │
+        ### ╰ 7 ← 6 ← 5 ← 4 ╯
+
+        # dejar fijo el primer elemento,
+        # luego rotar poniendo el último de primero, y todos los restantes a su derecha
+        copia_códigos_equipos = [copia_códigos_equipos[0], copia_códigos_equipos[-1]] + copia_códigos_equipos[1:-1]
+
+    if confirmar("CONFIRMA LA CREACIÓN DEL CALENDARIO"):
+        juegos = fechas
+
+
+def menú_consultar_calendario():
+    limpiar_terminal()
+
+    # título, nueva línea adicional
+    print("TORNEOS DE BOLA".center(50))
+    print("CONSULTAR CALENDARIO DE JUEGOS".center(50))
+    print()
+
+    # verificar que esté configurado y que la longitud de equipos no sea ni más ni menos
+    if not juegos:
+        error("Debe primero crear el calendario de juegos")
+        return
+
+    print(nombre_torneo)
+    print()
+
+    # para cada juego, imprimir el número de fecha y sus partidos
+    
+    for i, fecha in enumerate(juegos):
+        print(f"Fecha {i + 1}")
+
+        for equipo_1, equipo_2 in fecha:
+            # obtener los nombres de los equipos con sus códigos
+            print(f"{equipos[equipo_1][0]} — {equipos[equipo_2][0]}")
+
+        print()
+
+    confirmar(solo_aceptar=True)
+            
+
 
 ########################################
 # Funciones auxiliares #################
@@ -485,6 +600,23 @@ def limpiar_terminal():
 ########################################
 # Pruebas ##############################
 ########################################
+
+nombre_torneo = "copa airlines"
+equipos_participantes = 6
+equipos_clasifican = 2
+puntos_ganado = 3
+puntos_empatado = 1
+
+# diccionario con los equipos y su información
+equipos = {
+    "CRC": ("Costa Rica", 1),
+    "USA": ("Estados Unidos", 2),
+    "MEX": ("México", 3),
+    "HND": ("Honduras", 4),
+    "SAL": ("El Salvador", 5),
+    "PAN": ("Panamá", 6)
+}
+
 
 ########################################
 # Función principal ####################
