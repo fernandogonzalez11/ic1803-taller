@@ -36,6 +36,16 @@ equipos = {}
 # esta lista se genera automáticamente con la opción 3
 juegos = []
 
+# lista de los resultados de cada juego, tiene relación 1:1 con juegos
+# se popula la lista con valores iniciales inmediatamente después de la creación de juegos
+# internamente, un resultado no añadido se almacena como () [tupla vacía]
+resultados = []
+
+# lista de los goleadores de cada juego, tiene relación 1:1 con juegos (aunque no se vea, jaja)
+# se popula la lista con valores iniciales inmediatamente después de la creación de juegos
+# internamente, una tupla de goles de casa y visita se almacena como () [tupla vacía]
+goleadores = []
+
 
 ########################################
 # Funcionalidades base #################
@@ -78,7 +88,7 @@ def menú_principal():
             case "4":
                 menú_consultar_calendario()
             case "5":
-                pass
+                menú_registrar_resultados()
             case "6":
                 pass
             case "7":
@@ -237,7 +247,7 @@ def equipos_agregar():
 
         # título, nueva línea adicional
         print("TORNEOS DE BOLA".center(50))
-        print("REGISTRAR EQUIPOS: AGREGAR EQUIPOS".center(50))
+        print("REGISTRAR EQUIPOS: AGREGAR".center(50))
         print()
 
         # con que uno de los valores sea el inicial se sabe que no se ha configurado
@@ -311,7 +321,7 @@ def equipos_consultar():
 
         # título, nueva línea adicional
         print("TORNEOS DE BOLA".center(50))
-        print("REGISTRAR EQUIPOS: CONSULTAR EQUIPOS".center(50))
+        print("REGISTRAR EQUIPOS: CONSULTAR".center(50))
         print()
 
         código_equipo = input("Código del equipo: ")
@@ -340,7 +350,7 @@ def equipos_modificar():
 
         # título, nueva línea adicional
         print("TORNEOS DE BOLA".center(50))
-        print("REGISTRAR EQUIPOS: MODIFICAR EQUIPOS".center(50))
+        print("REGISTRAR EQUIPOS: MODIFICAR".center(50))
         print()
 
         código_equipo = input("Código del equipo: ")
@@ -412,13 +422,16 @@ solo se pueden eliminar grupos si no se creó ya el calendario
 """
 def equipos_eliminar():
     # TODO: Las eliminaciones de equipos se permiten solo cuando el calendario de juegos no esté hecho.
-
+    if juegos:
+        error("No se pueden eliminar equipos con el calendario de juegos ya creado")
+        return
+    
     while True:
         limpiar_terminal()
 
         # título, nueva línea adicional
         print("TORNEOS DE BOLA".center(50))
-        print("REGISTRAR EQUIPOS: ELIMINAR EQUIPOS".center(50))
+        print("REGISTRAR EQUIPOS: ELIMINAR".center(50))
         print()
 
         código_equipo = input("Código del equipo: ")
@@ -514,7 +527,24 @@ def menú_crear_calendario():
         copia_códigos_equipos = [copia_códigos_equipos[0], copia_códigos_equipos[-1]] + copia_códigos_equipos[1:-1]
 
     if confirmar("CONFIRMA LA CREACIÓN DEL CALENDARIO"):
-        juegos = fechas
+        # añade la vuelta 1 de fechas generadas
+        # se hace una copia para no afectar fechas cuando juegos se modifica
+        juegos = fechas.copy()
+        
+        # y la vuelta 2, con las tuplas revertidas
+        for fecha in fechas:
+            juegos.append([(b, a) for a, b in fecha])
+
+        # además, se popula tanto resultados como goleadores con las tuplas de cada fecha
+        # como siguen el mismo modelo inicial, se puede almacenar la misma tupla
+        for fecha in juegos:
+            tupla_res_gol = ()
+
+            for partido in fecha:
+                tupla_res_gol += ( (), )
+
+            resultados.append(tupla_res_gol)
+            goleadores.append(tupla_res_gol)
 
 
 def menú_consultar_calendario():
@@ -546,7 +576,208 @@ def menú_consultar_calendario():
 
     confirmar(solo_aceptar=True)
             
+"""
+menú de opción 4: registrar resultados
+maneja un CRUD de los resultados
+0 para volver al menú principal
+"""
+def menú_registrar_resultados():
+        while True:
+            limpiar_terminal()
 
+            # título, nueva línea adicional
+            print("TORNEOS DE BOLA".center(50))
+            print("REGISTRAR RESULTADOS".center(50))
+            print()
+            print("1. Agregar resultados")
+            print("2. Consultar resultados")
+            print("3. Modificar resultados")
+            print("4. Eliminar resultados")
+            print("0. Fin")
+            print()
+
+            # pedir opción
+            opción = input("   OPCIÓN: ")
+
+            match opción:
+                case "1":
+                    resultados_agregar()
+                case "2":
+                    #resultados_consultar()
+                    pass
+                case "3":
+                    #resultados_modificar()
+                    pass
+                case "4":
+                    #resultados_eliminar()
+                    pass
+                case "0":
+                    # finalizar el ciclo, y en turno volver al menú principal
+                    break
+                case _:
+                    error("La opción digitada no es válida")
+
+"""
+funcionalidad 4.1: agregar resultados
+
+"""
+def resultados_agregar():
+    while True:
+        limpiar_terminal()
+
+        # título, nueva línea adicional
+        print("TORNEOS DE BOLA".center(50))
+        print("REGISTRAR RESULTADOS: AGREGAR".center(50))
+        print()
+
+        while True:
+            casa = input("Código del equipo casa:".ljust(30))
+
+            # cancelar con C
+            if casa == "C":
+                return
+            
+            visita = input("Código del equipo visita:".ljust(30))
+
+            # como juegos comprende a todos los del producto cartesiano equipos x equipos,
+            # solo se debe verificar que ambos equipos estén y no sean iguales
+            if casa in equipos and visita in equipos and casa != visita:
+                # se encuentra la posición de la fecha y del juego en esa fecha
+                # cuando el ciclo se corta, ya se tienen los índices almacenados
+                for i_fecha, fecha in enumerate(juegos):
+                    try:
+                        j_fecha = fecha.index((casa, visita))
+                        break
+                    except:
+                        continue
+                
+                # si el resultado del partido ya tiene datos (no es tupla vacía)
+                if resultados[i_fecha][j_fecha]:
+                    error("Este juego ya está registrado, no se puede agregar")
+                else:
+                    break
+            else:
+                error("Este juego no está en el calendario, no se puede registrar resultado")
+        
+        # línea separadora entre códigos y goles
+        print()
+
+        """
+        crea y retorna la tupla de goles para un equipo, según su cantidad de goles
+        entrada: int (cantidad de goles del equipo)
+        salida: tuple (tupla de tuplas con los nombres y minutos de cada gol)
+
+        función local a resultados_agregar()
+        """
+        def crear_goles(num_goles_equipo: int) -> tuple:
+            goles_equipo = ()
+            for gol in range(num_goles_equipo):
+
+                print(f"  - Gol {gol + 1}")
+
+                # solicitar el nombre del goleador
+                while True:
+                    nombre_goleador = input(f"  Nombre del goleador".ljust(30))
+
+                    if len(nombre_goleador) < 2 or len(nombre_goleador) > 40:
+                        error("El nombre del goleador debe ser entre 2 y 40 caracteres")
+                    else:
+                        break
+                
+                # solicitar el minuto en que ocurrió el gol
+                while True:
+                    minuto_gol = input(f"  Minuto".ljust(30))
+
+                    # contar válidos "10" y "-10"
+                    if not minuto_gol.isnumeric() and not minuto_gol[1:].isnumeric():
+                        error("El minuto del gol debe ser un número")
+                        continue
+
+                    minuto_gol = int(minuto_gol)
+
+                    # NOTE: ¿el minuto debería más bien ser de 1 a 90, y si es 90 se guarda la reposición?
+                    if abs(minuto_gol) < 1 or abs(minuto_gol) > 90:
+                        error("El minuto del gol debe ser de 1 a 90, o -1 a -90 para autogoles")
+                    else:
+                        break
+                
+                # solicitar el minuto de reposición (si los minutos normales son 90)
+                reposición = 0
+                while abs(minuto_gol) == 90:
+                    reposición = input(f"  Reposición".ljust(30))
+
+                    if not reposición:
+                        reposición = 0
+                        break
+                    
+                    # el formato es +n, donde n comprende de 0 a 30
+                    if reposición[0] != "+" or not reposición[1:].isnumeric():
+                        error("El minuto de reposición debe ser un número empezando con \"+\" (ej: +3)")
+                        continue
+                    
+                    reposición = int(reposición[1:])
+
+                    if reposición > 30:
+                        error("El minuto de reposición no puede ser mayor a +30")
+                    else:
+                        break
+
+                # formar la tupla y añadirla a los goles del equipo
+                tupla_gol = (nombre_goleador, minuto_gol, reposición)
+                goles_equipo += (tupla_gol,)
+
+                # separar cada gol con una nueva línea
+                print()
+
+            return goles_equipo
+            
+        # pedir la cantidad de goles de casa, y los goleadores de cada uno
+        while True:
+            num_goles_casa = input("Goles del equipo casa:".ljust(30))
+
+            if not num_goles_casa.isnumeric() or int(num_goles_casa) < 0:
+                error("Los goles deben ser un número positivo")
+            else:
+                num_goles_casa = int(num_goles_casa)
+                break
+
+        goles_casa = crear_goles(num_goles_casa)    
+
+
+        # pedir la cantidad de goles de visita, y los goleadores de cada uno
+        while True:
+            num_goles_visita = input("Goles del equipo visita:".ljust(30))
+
+            if not num_goles_visita.isnumeric() or int(num_goles_visita) < 0:
+                error("Los goles deben ser un número positivo")
+            else:
+                num_goles_visita = int(num_goles_visita)
+                break
+
+        goles_visita = crear_goles(num_goles_visita)
+
+        # línea separadora entre los goles y la confirmación
+        print()
+        if confirmar():
+            # asignar el resultado y los goleadores a la fecha y partido respectivo
+            # como las listas están formadas como tuplas, se debe recrear la tupla
+            # en lugar de solo reemplazar elementos
+
+            res_fecha = resultados[i_fecha]
+            gols_fecha = goleadores[i_fecha]
+
+            # en la fecha, el nuevo resultado será una tupla (p1, p2)
+            # donde p1 y p2 son números de cada equipo
+            res_fecha = res_fecha[:j_fecha] + ( (num_goles_casa, num_goles_visita), ) + res_fecha[j_fecha + 1:]
+
+            # en la fecha, los nuevos goleadores serán una tupla ((...), (...))
+            # donde (...) son goles (como tuplas) de cada equipo
+            print(goles_casa)
+            input()
+            gols_fecha = gols_fecha[:j_fecha] + ( ( goles_casa, goles_visita ), ) + gols_fecha[j_fecha + 1:]
+
+            resultados[i_fecha] = res_fecha
+            goleadores[i_fecha] = gols_fecha
 
 ########################################
 # Funciones auxiliares #################
@@ -601,6 +832,7 @@ def limpiar_terminal():
 # Pruebas ##############################
 ########################################
 
+# configuración del torneo
 nombre_torneo = "copa airlines"
 equipos_participantes = 6
 equipos_clasifican = 2
