@@ -101,7 +101,7 @@ def menú_principal():
             case "6":
                 menú_tabla_posiciones()
             case "7":
-                pass
+                menú_tabla_goleadores()
             case "8":
                 pass
             case "9":
@@ -999,11 +999,6 @@ def menú_tabla_posiciones():
 
     limpiar_terminal()
 
-    # título, nueva línea adicional
-    print("TORNEOS DE BOLA".center(50))
-    print("CONSULTAR CALENDARIO DE JUEGOS".center(50))
-    print()
-
     # verificar que el calendario de juegos esté hecho (y subsecuentemente resultados y goleadores)
     if not juegos:
         error("Debe primero crear el calendario de juegos")
@@ -1022,7 +1017,8 @@ def menú_tabla_posiciones():
 
     # un sort con tuplas implica ordenar con el primer elemento
     # y si en ese se empata, ordenar con el segundo, y así sucesivamente
-    tuplas_por_ordenar.sort(key=lambda tupla: tupla[1])
+    # se usa reverse=True para ordenar de más a menos valores
+    tuplas_por_ordenar.sort(key=lambda tupla: tupla[1], reverse=True)
 
     # imprimir los encabezados
     print(nombre_torneo)
@@ -1068,6 +1064,65 @@ def menú_tabla_posiciones():
             correo = input("Digite su dirección de correo: ")
             return
 
+
+def menú_tabla_goleadores():
+    # tener un diccionario con formato "código: (jg, je, jp, gf, gc)"
+    # luego, hacer una lista con (código, (puntos, gc, escalafón))
+    # y ordenarla según key = elem[1]
+
+    limpiar_terminal()
+
+    # verificar que el calendario de juegos esté hecho (y subsecuentemente resultados y goleadores)
+    if not juegos:
+        error("Debe primero crear el calendario de juegos")
+        return
+    
+    dict_goleadores = {}
+    
+    # para cada partido en la lista de goleadores
+    for i_fecha, fecha in enumerate(goleadores):
+        for j_fecha, partido in enumerate(fecha):
+            códigos_equipo = juegos[i_fecha][j_fecha]
+            
+            # cada goleador en tanto el equipo de casa como el de visita
+            for k_equipo, equipo in enumerate(partido):
+                for goleador in equipo:
+                    tupla_goleador = (goleador[0], códigos_equipo[k_equipo])
+                    if tupla_goleador in dict_goleadores:
+                        dict_goleadores[tupla_goleador] += 1
+                    else:
+                        dict_goleadores[tupla_goleador] = 1
+                        
+    # ahora se tiene un diccionario con formato (nombre_goleador, código_equipo): goles
+    # se hace una lista y se ordena con llave de goles
+    # reverse=True para ir en orden descendente
+    tuplas_ordenar = dict_goleadores.items()
+    tuplas_ordenar = sorted(tuplas_ordenar, key=lambda tupla: tupla[1], reverse=True)
+    
+    # imprimir encabezados
+    print(nombre_torneo)
+    print("Tabla de goleadores")
+    print()
+    
+    # con la lista ordenada, se puede imprimir en ese orden
+    str_encabezado = "Jugador".ljust(20) + "Equipo".ljust(20) + "Goles"
+    str_encabezado += "\n" + "─" * (45)
+    
+    print(str_encabezado)
+    
+    str_goleadores = ""
+    for goleador in tuplas_ordenar:
+        # desempaquetas los valores de la lista ordenada
+        (nombre_goleador, código_equipo), goles = goleador
+        
+        str_goleadores += nombre_goleador.ljust(20) + equipos[código_equipo][0].ljust(20) + str(goles) + "\n"
+    
+    print(str_goleadores)
+    
+    print()
+    confirmar()
+                        
+                
 
 ########################################
 # Funciones auxiliares #################
