@@ -29,23 +29,32 @@ equipos_clasifican = 0
 puntos_ganado = 0
 puntos_empatado = 0
 
-# diccionario con los equipos y su información
+# diccionario con los equipos y su información, con formato:
+# código: (nombre, posición)
 equipos = {}
 
 # lista de tuplas con los juegos establecidos a sus fechas respectivas
 # esta lista se genera automáticamente con la opción 3
+# cada fecha tiene juegos (código_casa, código_visita)
 juegos = []
 
 # lista de los resultados de cada juego, tiene relación 1:1 con juegos
 # se popula la lista con valores iniciales inmediatamente después de la creación de juegos
 # internamente, un resultado no añadido se almacena como () [tupla vacía]
+# cada resultado tiene el formato (num_goles_casa, num_goles_visita)
 resultados = []
 
 # lista de los goleadores de cada juego, tiene relación 1:1 con juegos (aunque no se vea, jaja)
 # se popula la lista con valores iniciales inmediatamente después de la creación de juegos
 # internamente, una tupla de goles de casa y visita se almacena como () [tupla vacía]
+# cada gol tiene el formato (goleador, minuto, reposición)
 goleadores = []
 
+# diccionario con formato "código: [jg, je, jp, gf, gc]"
+# jg, je, jp -> juegos ganados, empatados, perdidos
+# gf, gc -> goles a favor, en contra
+# estos cinco valores se inicializan en 0 para cada equipo
+estadísticas = {}
 
 ########################################
 # Funcionalidades base #################
@@ -90,7 +99,7 @@ def menú_principal():
             case "5":
                 menú_registrar_resultados()
             case "6":
-                pass
+                menú_tabla_posiciones()
             case "7":
                 pass
             case "8":
@@ -421,7 +430,6 @@ solicita el código y elimina al equipo asociado del diccionario
 solo se pueden eliminar grupos si no se creó ya el calendario
 """
 def equipos_eliminar():
-    # TODO: Las eliminaciones de equipos se permiten solo cuando el calendario de juegos no esté hecho.
     if juegos:
         error("No se pueden eliminar equipos con el calendario de juegos ya creado")
         return
@@ -546,6 +554,10 @@ def menú_crear_calendario():
             resultados.append(tupla_res_gol)
             goleadores.append(tupla_res_gol)
 
+        # crea la entrada del diccionario de estadísticas para cada equipo
+        for equipo in equipos:
+            estadísticas[equipo] = [0] * 5
+
 
 def menú_consultar_calendario():
     limpiar_terminal()
@@ -555,7 +567,7 @@ def menú_consultar_calendario():
     print("CONSULTAR CALENDARIO DE JUEGOS".center(50))
     print()
 
-    # verificar que esté configurado y que la longitud de equipos no sea ni más ni menos
+    # verificar que el calendario de juegos esté hecho
     if not juegos:
         error("Debe primero crear el calendario de juegos")
         return
@@ -564,7 +576,6 @@ def menú_consultar_calendario():
     print()
 
     # para cada juego, imprimir el número de fecha y sus partidos
-    
     for i, fecha in enumerate(juegos):
         print(f"Fecha {i + 1}")
 
@@ -603,14 +614,11 @@ def menú_registrar_resultados():
                 case "1":
                     resultados_agregar()
                 case "2":
-                    #resultados_consultar()
-                    pass
+                    resultados_consultar()
                 case "3":
-                    #resultados_modificar()
-                    pass
+                    resultados_modificar()
                 case "4":
-                    #resultados_eliminar()
-                    pass
+                    resultados_eliminar()
                 case "0":
                     # finalizar el ciclo, y en turno volver al menú principal
                     break
@@ -620,44 +628,64 @@ def menú_registrar_resultados():
 """
 funcionalidad 4.1: agregar resultados
 
+pide el código de casa y visita, el número de goles de cada equipo, y por cada gol pide:
+- el nombre del goleador
+- el minuto del gol (de 1 a 120, negativo si es autogol)
+- si el minuto es 45 o 90, la reposición (sin límite, pero debe empezar con +) (+3, +12, etc.)
+
+al tener todos los goles listos, actualiza resultados y goleadores con sus formatos respectivos
+
+el parámetro modificar es False por defecto. si es True, permite sobreescribir un resultado
 """
-def resultados_agregar():
+def resultados_agregar(modificar=False):
     while True:
         limpiar_terminal()
 
         # título, nueva línea adicional
         print("TORNEOS DE BOLA".center(50))
-        print("REGISTRAR RESULTADOS: AGREGAR".center(50))
+
+        if modificar:
+            encabezado_operación = "MODIFICAR"
+        else:
+            encabezado_operación = "AGREGAR"
+
+        print(f"REGISTRAR RESULTADOS: {encabezado_operación}".center(50))
         print()
+        
+        casa = input("Código del equipo casa:".ljust(30))
 
-        while True:
-            casa = input("Código del equipo casa:".ljust(30))
+        # cancelar con C
+        if casa == "C":
+            return
+        
+        visita = input("Código del equipo visita:".ljust(30))
 
-            # cancelar con C
-            if casa == "C":
-                return
-            
-            visita = input("Código del equipo visita:".ljust(30))
-
-            # como juegos comprende a todos los del producto cartesiano equipos x equipos,
-            # solo se debe verificar que ambos equipos estén y no sean iguales
-            if casa in equipos and visita in equipos and casa != visita:
-                # se encuentra la posición de la fecha y del juego en esa fecha
-                # cuando el ciclo se corta, ya se tienen los índices almacenados
-                for i_fecha, fecha in enumerate(juegos):
-                    try:
-                        j_fecha = fecha.index((casa, visita))
-                        break
-                    except:
-                        continue
-                
-                # si el resultado del partido ya tiene datos (no es tupla vacía)
-                if resultados[i_fecha][j_fecha]:
-                    error("Este juego ya está registrado, no se puede agregar")
-                else:
+        # como juegos comprende a todos los del producto cartesiano equipos x equipos,
+        # solo se debe verificar que ambos equipos estén y no sean iguales
+        if casa in equipos and visita in equipos and casa != visita:
+            # se encuentra la posición de la fecha y del juego en esa fecha
+            # cuando el ciclo se corta, ya se tienen los índices almacenados
+            for i_fecha, fecha in enumerate(juegos):
+                try:
+                    j_fecha = fecha.index((casa, visita))
                     break
-            else:
-                error("Este juego no está en el calendario, no se puede registrar resultado")
+                except:
+                    continue
+            
+            # para la operación de agregar
+            # si el resultado del partido ya tiene datos (no es tupla vacía)
+            if not modificar and resultados[i_fecha][j_fecha]:
+                error("Este juego ya está registrado, no se puede agregar")
+                continue
+
+            # para la de modificar
+            # si más bien no tiene datos
+            elif modificar and not resultados[i_fecha][j_fecha]:
+                error("Este juego no está registrado, no se puede modificar")
+            
+        else:
+            error("Este juego no está en el calendario, no se puede registrar resultado")
+            continue
         
         # línea separadora entre códigos y goles
         print()
@@ -695,15 +723,15 @@ def resultados_agregar():
 
                     minuto_gol = int(minuto_gol)
 
-                    # NOTE: ¿el minuto debería más bien ser de 1 a 90, y si es 90 se guarda la reposición?
-                    if abs(minuto_gol) < 1 or abs(minuto_gol) > 90:
-                        error("El minuto del gol debe ser de 1 a 90, o -1 a -90 para autogoles")
+                    
+                    if abs(minuto_gol) < 1 or abs(minuto_gol) > 120:
+                        error("El minuto del gol debe ser de 1 a 120, o -1 a -120 para autogoles")
                     else:
                         break
                 
-                # solicitar el minuto de reposición (si los minutos normales son 90)
+                # solicitar el minuto de reposición (si los minutos normales son 45 o 90)
                 reposición = 0
-                while abs(minuto_gol) == 90:
+                while abs(minuto_gol) == 45 or abs(minuto_gol) == 90:
                     reposición = input(f"  Reposición".ljust(30))
 
                     if not reposición:
@@ -716,11 +744,8 @@ def resultados_agregar():
                         continue
                     
                     reposición = int(reposición[1:])
-
-                    if reposición > 30:
-                        error("El minuto de reposición no puede ser mayor a +30")
-                    else:
-                        break
+                    break
+                    
 
                 # formar la tupla y añadirla a los goles del equipo
                 tupla_gol = (nombre_goleador, minuto_gol, reposición)
@@ -772,12 +797,277 @@ def resultados_agregar():
 
             # en la fecha, los nuevos goleadores serán una tupla ((...), (...))
             # donde (...) son goles (como tuplas) de cada equipo
-            print(goles_casa)
-            input()
             gols_fecha = gols_fecha[:j_fecha] + ( ( goles_casa, goles_visita ), ) + gols_fecha[j_fecha + 1:]
+
+            # reemplazar las tuplas en la lista original
+            resultados[i_fecha] = res_fecha
+            goleadores[i_fecha] = gols_fecha
+
+            # crear aliases (no son copias) de las estadísticas para editarlos
+            # estadística -> código: [jg, je, jp, gf, gc]
+            estadística_casa = estadísticas[casa]
+            estadística_visita = estadísticas[visita]
+
+            # pierde visita
+            if num_goles_casa > num_goles_visita:
+                estadística_casa[0] += 1
+                estadística_visita[2] += 1
+            # pierde casa
+            elif num_goles_visita > num_goles_casa:
+                estadística_casa[2] += 1
+                estadística_visita[0] += 1
+            # empatan
+            else:
+                estadística_casa[1] += 1
+                estadística_visita[1] += 1
+            
+            # en todos los casos, añadir los goles a favor y en contra
+            estadística_casa[3] += num_goles_casa
+            estadística_casa[4] += num_goles_visita
+            estadística_visita[3] += num_goles_visita
+            estadística_visita[4] += num_goles_casa
+
+"""
+funcionalidad 4.2: consultar resultados
+
+pide los códigos de equipos y despliega los datos asociados a ese partido
+"""
+def resultados_consultar():
+    while True:
+        limpiar_terminal()
+
+        # título, nueva línea adicional
+        print("TORNEOS DE BOLA".center(50))
+        print("REGISTRAR RESULTADOS: CONSULTAR".center(50))
+        print()
+
+        while True:
+            casa = input("Código del equipo casa:".ljust(30))
+
+            # cancelar con C
+            if casa == "C":
+                return
+            
+            visita = input("Código del equipo visita:".ljust(30))
+
+            # como juegos comprende a todos los del producto cartesiano equipos x equipos,
+            # solo se debe verificar que ambos equipos estén y no sean iguales
+            if casa in equipos and visita in equipos and casa != visita:
+                # se encuentra la posición de la fecha y del juego en esa fecha
+                # cuando el ciclo se corta, ya se tienen los índices almacenados
+                for i_fecha, fecha in enumerate(juegos):
+                    try:
+                        j_fecha = fecha.index((casa, visita))
+                        break
+                    except:
+                        continue
+                
+                # si el resultado del partido no tiene datos (es tupla vacía)
+                if not resultados[i_fecha][j_fecha]:
+                    error("Este juego no está registrado, no se puede consultar")
+                else:
+                    break
+            else:
+                error("Este juego no está en el calendario, no se puede consultar resultado")
+        
+        # línea separadora entre códigos y despliegues
+        print()
+
+        resultado = resultados[i_fecha][j_fecha]
+
+        # imprimir el puntaje de cada equipo
+        print(casa.center(7) + "-" + visita.center(7))
+        print(str(resultado[0]).center(7) + "-" + str(resultado[1]).center(7))
+        print()
+        
+        goles = goleadores[i_fecha][j_fecha]
+        # imprimir los goles del equipo casa
+        if goles[0]:
+            print("Goles de", equipos[casa][0], "(casa):")
+            for gol_casa in goles[0]:
+                string_gol = f"  {gol_casa[0]} en '{gol_casa[1]}"
+                if gol_casa[2]:
+                    string_gol += f" +{gol_casa[2]}"
+
+                print(string_gol)
+            print()
+
+        if goles[1]:
+            print("Goles de", equipos[visita][0], "(visita):")
+            for gol_visita in goles[1]:
+                string_gol = f"  {gol_visita[0]} en '{gol_visita[1]}"
+                if gol_visita[2]:
+                    string_gol += f" +{gol_visita[2]}"
+
+                print(string_gol)
+            print()
+
+        
+        confirmar(solo_aceptar=True)
+
+def resultados_modificar():
+    resultados_agregar(modificar=True)
+
+def resultados_eliminar():
+    while True:
+        limpiar_terminal()
+
+        # título, nueva línea adicional
+        print("TORNEOS DE BOLA".center(50))
+        print("REGISTRAR RESULTADOS: ELIMINAR".center(50))
+        print()
+
+        
+        casa = input("Código del equipo casa:".ljust(30))
+
+        # cancelar con C
+        if casa == "C":
+            return
+        
+        visita = input("Código del equipo visita:".ljust(30))
+
+        # como juegos comprende a todos los del producto cartesiano equipos x equipos,
+        # solo se debe verificar que ambos equipos estén y no sean iguales
+        if casa in equipos and visita in equipos and casa != visita:
+            # se encuentra la posición de la fecha y del juego en esa fecha
+            # cuando el ciclo se corta, ya se tienen los índices almacenados
+            for i_fecha, fecha in enumerate(juegos):
+                try:
+                    j_fecha = fecha.index((casa, visita))
+                    break
+                except:
+                    continue
+            
+            # si el resultado del partido no tiene datos (es tupla vacía)
+            if not resultados[i_fecha][j_fecha]:
+                error("Este juego no está registrado, no se puede eliminar")
+                continue
+        else:
+            error("Este juego no está en el calendario, no se puede eliminar resultado")
+            continue
+        
+        # línea separadora entre códigos y despliegues
+        print()
+
+        # pedir doble confirmación de eliminación
+        if confirmar() and confirmar("CONFIRMA LA ELIMINACIÓN"):
+            res_fecha = resultados[i_fecha]
+            gols_fecha = goleadores[i_fecha]
+
+            # (1) revertir todos los cambios de las estadísticas
+
+            # crear aliases (no son copias) de las estadísticas para editarlos
+            # estadística -> código: [jg, je, jp, gf, gc]
+            estadística_casa = estadísticas[casa]
+            estadística_visita = estadísticas[visita]
+            res_partido = res_fecha[j_fecha]
+
+            # pierde visita
+            if res_partido[0] > res_partido[1]:
+                estadística_casa[0] -= 1
+                estadística_visita[2] -= 1
+            # pierde casa
+            elif res_partido[1] > res_partido[0]:
+                estadística_casa[2] -= 1
+                estadística_visita[0] -= 1
+            # empatan
+            else:
+                estadística_casa[1] -= 1
+                estadística_visita[1] -= 1
+            
+            # quitar los goles a favor y en contra
+            estadística_casa[3] -= res_partido[0]
+            estadística_casa[4] -= res_partido[1]
+            estadística_visita[3] -= res_partido[1]
+            estadística_visita[4] -= res_partido[0]
+
+            # (2) revertir las listas de resultados y goleadores
+
+            # limpiar el contenido de solo el partido específico de la fecha
+            res_fecha = res_fecha[:j_fecha] + ( (), ) + res_fecha[j_fecha + 1:]
+
+            # de igual manera para los goles
+            gols_fecha = gols_fecha[:j_fecha] + ( (), ) + gols_fecha[j_fecha + 1:]
 
             resultados[i_fecha] = res_fecha
             goleadores[i_fecha] = gols_fecha
+
+def menú_tabla_posiciones():
+    # tener un diccionario con formato "código: (jg, je, jp, gf, gc)"
+    # luego, hacer una lista con (código, (puntos, gc, escalafón))
+    # y ordenarla según key = elem[1]
+
+    limpiar_terminal()
+
+    # título, nueva línea adicional
+    print("TORNEOS DE BOLA".center(50))
+    print("CONSULTAR CALENDARIO DE JUEGOS".center(50))
+    print()
+
+    # verificar que el calendario de juegos esté hecho (y subsecuentemente resultados y goleadores)
+    if not juegos:
+        error("Debe primero crear el calendario de juegos")
+        return
+
+    # se hace una lista de tuplas con el formato (código, (puntos, gd, gf, escalafón))
+    tuplas_por_ordenar = []
+    for equipo in equipos:
+        estadística_equipo = estadísticas[equipo]
+        puntos = estadística_equipo[0] * puntos_ganado + estadística_equipo[1] * puntos_empatado
+        gd = estadística_equipo[3] - estadística_equipo[4]
+
+        tuplas_por_ordenar.append((equipo, (puntos, gd, estadística_equipo[3], equipos[equipo][1])))
+
+    # ahora que se tiene la lista ordenada, se imprimen todas las estadísticas en ese orden
+
+    # un sort con tuplas implica ordenar con el primer elemento
+    # y si en ese se empata, ordenar con el segundo, y así sucesivamente
+    tuplas_por_ordenar.sort(key=lambda tupla: tupla[1])
+
+    # imprimir los encabezados
+    print(nombre_torneo)
+    print("Tabla de posiciones")
+    print("Equipos que clasifican:", equipos_clasifican)
+    print()
+
+    str_encabezado = "Equipo".ljust(20)
+
+    for encabezado in ("JJ", "JG", "JP", "JE", "GF", "GC", "GD", "Puntos"):
+        str_encabezado += encabezado.ljust(5)
+    
+    str_encabezado += "\n" + "─" * (20 + 5 * 8 + 2)
+
+    print(str_encabezado)
+
+    str_equipos = ""
+
+    # estadísticas_resto tiene algunas estadísticas, estadísticas[equipo] tiene más; se desempaquetan ambas
+    for equipo, estadísticas_resto in tuplas_por_ordenar:
+        jg, je, jf, gf, gc = estadísticas[equipo]
+
+        # _ es el estándar de una variable desusada, y con * agarra todo lo que
+        # sobra de estadísticas_resto al final
+        puntos, gd, *_ = estadísticas_resto
+
+        str_equipo = equipos[equipo][0].ljust(20)
+        
+        # añadir los valores de la tabla al string por imprimir
+        # añade un + solo con positivos en diferencia de goles
+        if gd > 0:
+            gd = f"+{gc}"
+
+        for valor in (jg + je + jf, jg, je, jf, gf, gc, gd, puntos):
+            str_equipo += str(valor).ljust(5)
+        
+        print(str_equipo)
+        str_equipos += str_equipo + "\n"
+
+    # TODO: enviar correo
+    if confirmar("¿Enviar un correo electrónico con la tabla?"):
+        while True:
+            correo = input("Digite su dirección de correo: ")
+            return
+
 
 ########################################
 # Funciones auxiliares #################
@@ -849,6 +1139,10 @@ equipos = {
     "PAN": ("Panamá", 6)
 }
 
+juegos = [(('CRC', 'PAN'), ('USA', 'SAL'), ('MEX', 'HND')), (('CRC', 'SAL'), ('PAN', 'HND'), ('USA', 'MEX')), (('CRC', 'HND'), ('SAL', 'MEX'), ('PAN', 'USA')), (('CRC', 'MEX'), ('HND', 'USA'), ('SAL', 'PAN')), (('CRC', 'USA'), ('MEX', 'PAN'), ('HND', 'SAL')), [('PAN', 'CRC'), ('SAL', 'USA'), ('HND', 'MEX')], [('SAL', 'CRC'), ('HND', 'PAN'), ('MEX', 'USA')], [('HND', 'CRC'), ('MEX', 'SAL'), ('USA', 'PAN')], [('MEX', 'CRC'), ('USA', 'HND'), ('PAN', 'SAL')], [('USA', 'CRC'), ('PAN', 'MEX'), ('SAL', 'HND')]]
+resultados = [((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((2, 1), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ())]
+goleadores = [((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), (((('ovario', 10, 0), ('duende', 45, 3)), (('dickins', 90, 2),)), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ())]
+estadísticas = {'CRC': [1, 0, 0, 2, 1], 'USA': [0, 0, 1, 1, 2], 'MEX': [0, 0, 0, 0, 0], 'HND': [0, 0, 0, 0, 0], 'SAL': [0, 0, 0, 0, 0], 'PAN': [0, 0, 0, 0, 0]}
 
 ########################################
 # Función principal ####################
