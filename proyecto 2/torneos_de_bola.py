@@ -50,12 +50,6 @@ resultados = []
 # cada gol tiene el formato (goleador, minuto, reposición)
 goleadores = []
 
-# diccionario con formato "código: [jg, je, jp, gf, gc]"
-# jg, je, jp -> juegos ganados, empatados, perdidos
-# gf, gc -> goles a favor, en contra
-# estos cinco valores se inicializan en 0 para cada equipo
-estadísticas = {}
-
 ########################################
 # Funcionalidades base #################
 ########################################
@@ -554,10 +548,6 @@ def menú_crear_calendario():
             resultados.append(tupla_res_gol)
             goleadores.append(tupla_res_gol)
 
-        # crea la entrada del diccionario de estadísticas para cada equipo
-        for equipo in equipos:
-            estadísticas[equipo] = [0] * 5
-
 
 def menú_consultar_calendario():
     limpiar_terminal()
@@ -803,7 +793,7 @@ def resultados_agregar(modificar=False):
             resultados[i_fecha] = res_fecha
             goleadores[i_fecha] = gols_fecha
 
-            # crear aliases (no son copias) de las estadísticas para editarlos
+            """ # crear aliases (no son copias) de las estadísticas para editarlos
             # estadística -> código: [jg, je, jp, gf, gc]
             estadística_casa = estadísticas[casa]
             estadística_visita = estadísticas[visita]
@@ -825,7 +815,7 @@ def resultados_agregar(modificar=False):
             estadística_casa[3] += num_goles_casa
             estadística_casa[4] += num_goles_visita
             estadística_visita[3] += num_goles_visita
-            estadística_visita[4] += num_goles_casa
+            estadística_visita[4] += num_goles_casa """
 
 """
 funcionalidad 4.2: consultar resultados
@@ -954,7 +944,7 @@ def resultados_eliminar():
             res_fecha = resultados[i_fecha]
             gols_fecha = goleadores[i_fecha]
 
-            # (1) revertir todos los cambios de las estadísticas
+            """ # (1) revertir todos los cambios de las estadísticas
 
             # crear aliases (no son copias) de las estadísticas para editarlos
             # estadística -> código: [jg, je, jp, gf, gc]
@@ -979,7 +969,7 @@ def resultados_eliminar():
             estadística_casa[3] -= res_partido[0]
             estadística_casa[4] -= res_partido[1]
             estadística_visita[3] -= res_partido[1]
-            estadística_visita[4] -= res_partido[0]
+            estadística_visita[4] -= res_partido[0] """
 
             # (2) revertir las listas de resultados y goleadores
 
@@ -993,16 +983,15 @@ def resultados_eliminar():
             goleadores[i_fecha] = gols_fecha
 
 def menú_tabla_posiciones():
-    # tener un diccionario con formato "código: (jg, je, jp, gf, gc)"
-    # luego, hacer una lista con (código, (puntos, gc, escalafón))
-    # y ordenarla según key = elem[1]
-
     limpiar_terminal()
 
     # verificar que el calendario de juegos esté hecho (y subsecuentemente resultados y goleadores)
     if not juegos:
         error("Debe primero crear el calendario de juegos")
         return
+
+    # hacer un diccionario con formato "código: (jg, je, jp, gf, gc)"
+    estadísticas = crear_estadísticas()
 
     # se hace una lista de tuplas con el formato (código, (puntos, gd, gf, escalafón))
     tuplas_por_ordenar = []
@@ -1059,6 +1048,7 @@ def menú_tabla_posiciones():
         str_equipos += str_equipo + "\n"
 
     # TODO: enviar correo
+    print()
     if confirmar("¿Enviar un correo electrónico con la tabla?"):
         while True:
             correo = input("Digite su dirección de correo: ")
@@ -1120,7 +1110,7 @@ def menú_tabla_goleadores():
     print(str_goleadores)
     
     print()
-    confirmar()
+    confirmar(solo_aceptar=True)
                         
                 
 
@@ -1171,6 +1161,59 @@ def limpiar_terminal():
     # linux, mac, etc
     else:
         os.system("clear")
+
+"""
+dados los equipos y resultados, crea un diccionario de estadísticas
+estadísticas tiene el formato código_equipo: [jg, je, jp, gf, gc]
+jg, je, jp: juegos ganados, empatados, perdidos
+gf, gc: goles a favor, en contra
+"""
+def crear_estadísticas() -> dict:
+    estadísticas = {}
+
+    # hacer una lista vacía de estadísticas por cada equipo
+    for equipo in equipos:
+        estadísticas[equipo] = [0] * 5
+    
+    for i_fecha, fecha in enumerate(resultados):
+        # unir los códigos de casa y visita con sus resultados
+        for códigos_equipo, partido in zip(juegos[i_fecha], fecha):
+            # solo hacer modificaciones cuando hay resultados de un partido
+            if not partido:
+                continue
+
+            # desempaquetar todos los valores
+            casa, visita = códigos_equipo
+            goles_casa, goles_visita = partido
+
+            # obtener las estadísticas actuales de casa y visita
+            estadística_casa = estadísticas[casa]
+            estadística_visita = estadísticas[visita]
+            
+            # gana casa
+            if goles_casa > goles_visita:
+                estadística_casa[0] += 1
+                estadística_visita[2] += 1
+            # gana visita
+            elif goles_visita > goles_casa:
+                estadística_visita[0] += 1
+                estadística_casa[2] += 1
+            # empatan
+            else:
+                estadística_casa[1] += 1
+                estadística_visita[1] += 1
+
+            # en todos los casos, añadir los goles a favor y en contra de ambos equipos
+            estadística_casa[3] += goles_casa
+            estadística_casa[4] += goles_visita
+
+            estadística_visita[3] += goles_visita
+            estadística_visita[4] += goles_casa
+
+            estadísticas[casa] = estadística_casa
+            estadísticas[visita] = estadística_visita
+    
+    return estadísticas
 
 
 ########################################
