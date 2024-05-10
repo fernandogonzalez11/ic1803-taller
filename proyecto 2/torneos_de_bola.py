@@ -22,6 +22,9 @@ import pickle
 # Variables principales ################
 ########################################
 
+# versión del programa
+VERSIÓN = "0.7.0"
+
 # variables establecidas en la configuración
 nombre_torneo = ""
 equipos_participantes = 0
@@ -99,8 +102,10 @@ def menú_principal():
             case "8":
                 pass
             case "9":
-                pass
+                menú_acerca_de()
             case "0":
+                guardar_datos()
+
                 # finalizar el ciclo, y en turno todo el programa
                 break
             case _:
@@ -895,6 +900,12 @@ def resultados_consultar():
         
         confirmar(solo_aceptar=True)
 
+"""
+funcionalidad 4.3: modificar resultados
+
+internamente llama a la función de agregar, pero permite sobreescribir
+el resultado y cambia algunos mensajes
+"""
 def resultados_modificar():
     resultados_agregar(modificar=True)
 
@@ -944,33 +955,6 @@ def resultados_eliminar():
             res_fecha = resultados[i_fecha]
             gols_fecha = goleadores[i_fecha]
 
-            """ # (1) revertir todos los cambios de las estadísticas
-
-            # crear aliases (no son copias) de las estadísticas para editarlos
-            # estadística -> código: [jg, je, jp, gf, gc]
-            estadística_casa = estadísticas[casa]
-            estadística_visita = estadísticas[visita]
-            res_partido = res_fecha[j_fecha]
-
-            # pierde visita
-            if res_partido[0] > res_partido[1]:
-                estadística_casa[0] -= 1
-                estadística_visita[2] -= 1
-            # pierde casa
-            elif res_partido[1] > res_partido[0]:
-                estadística_casa[2] -= 1
-                estadística_visita[0] -= 1
-            # empatan
-            else:
-                estadística_casa[1] -= 1
-                estadística_visita[1] -= 1
-            
-            # quitar los goles a favor y en contra
-            estadística_casa[3] -= res_partido[0]
-            estadística_casa[4] -= res_partido[1]
-            estadística_visita[3] -= res_partido[1]
-            estadística_visita[4] -= res_partido[0] """
-
             # (2) revertir las listas de resultados y goleadores
 
             # limpiar el contenido de solo el partido específico de la fecha
@@ -982,6 +966,14 @@ def resultados_eliminar():
             resultados[i_fecha] = res_fecha
             goleadores[i_fecha] = gols_fecha
 
+
+"""
+menú de opción 6: despliega la tabla de posiciones de los equipos, según el siguiente orden:
+(1) puntos
+(2) si empatan, goles de diferencia
+(3) si empatan, goles a favor
+(4) si empatan, posición en el escalafón mundial
+"""
 def menú_tabla_posiciones():
     limpiar_terminal()
 
@@ -1054,7 +1046,9 @@ def menú_tabla_posiciones():
             correo = input("Digite su dirección de correo: ")
             return
 
-
+"""
+menú de función 7: despliega la tabla de goleadores en orden de más a menos goles hechos
+"""
 def menú_tabla_goleadores():
     # tener un diccionario con formato "código: (jg, je, jp, gf, gc)"
     # luego, hacer una lista con (código, (puntos, gc, escalafón))
@@ -1112,7 +1106,29 @@ def menú_tabla_goleadores():
     print()
     confirmar(solo_aceptar=True)
                         
-                
+"""
+menú de opción 9: información del programa
+"""
+def menú_acerca_de():
+    limpiar_terminal()
+
+    # título, nueva línea adicional
+    print("TORNEOS DE BOLA".center(50))
+    print("ACERCA DE".center(50))
+    print()
+
+    print(f"Versión: {VERSIÓN}".ljust(50))
+    print("Fecha de creación: 2024/05/03".ljust(50))
+    print("Autor: Fernando González Robles".ljust(50))
+    print("Programa 1 - IC1803 Taller de Programación".ljust(50))
+    
+    print("                     ___")
+    print(" o__        o__     |   |\\")
+    print("/|          /\      |   |X\\")
+    print("/ > o        <\     |   |XX\\")
+    print()
+
+    confirmar(solo_aceptar=True)
 
 ########################################
 # Funciones auxiliares #################
@@ -1215,12 +1231,90 @@ def crear_estadísticas() -> dict:
     
     return estadísticas
 
+"""
+guarda los datos en sus archivos
+configuración ->                    configuración.dat (texto separado por \n)
+equipos ->                          equipos.dat (binario, con pickle)
+juegos, resultados, goleadores ->   juegos.dat (binario, con pickle)
+"""
+def guardar_datos():
+    try:
+        # (1) guardar configuración
+        arch_config = open("configuración.dat", "w")
+        arch_config.write(nombre_torneo + "\n")
+        arch_config.write(str(equipos_participantes) + "\n")
+        arch_config.write(str(equipos_clasifican) + "\n")
+        arch_config.write(str(puntos_ganado) + "\n")
+        arch_config.write(str(puntos_empatado) + "\n")
+        arch_config.close()
+
+        # (2) guardar equipos en formato binario
+        arch_equipos = open("equipos.dat", "wb")
+        pickle.dump(equipos, arch_equipos)
+        arch_equipos.close()
+
+        # (3) guardar juegos, resultados y goleadores en formato binario
+        arch_juegos = open("juegos.dat", "wb")
+        pickle.dump(juegos, arch_juegos)
+        pickle.dump(resultados, arch_juegos)
+        pickle.dump(goleadores, arch_juegos)
+        arch_juegos.close()
+    except:
+        error()
+
+"""
+el tándem de guardar datos, más bien los carga a las variables respectivas
+"""
+def cargar_datos():
+    # cargar todas las variables por editar como globales
+    global nombre_torneo, equipos_participantes, puntos_ganado, puntos_empatado
+    global equipos, juegos, resultados
+
+    try:
+        # (1) cargar configuración
+        arch_config = open("configuración.dat", "r")
+        # quitarle el \n
+        nombre_torneo = arch_config.readline()[:-2]
+        # evaluar los demás a ints. eval va a ignorar el \n
+        equipos_participantes = eval(arch_config.readline())
+        equipos_clasifican = eval(arch_config.readline())
+        puntos_ganado = eval(arch_config.readline())
+        puntos_empatado = eval(arch_config.readline())
+        arch_config.close()
+
+        # (2) cargar equipos
+        arch_equipos = open("equipos.dat", "rb")
+        equipos = pickle.load(arch_equipos)
+        arch_equipos.close()
+
+        # (3) cargar juegos, resultados y goleadores
+        arch_juegos = open("juegos.dat", "rb")
+        juegos = pickle.load(arch_juegos)
+        resultados = pickle.load(arch_juegos)
+        goleadores = pickle.load(arch_juegos)
+        arch_juegos.close()
+
+    # EOFError: cuando se intenta leer más de las líneas de las que hay en el archivo
+    # en teoría todos los archivos tienen una cantidad predeterminada de líneas
+    # por lo que si hay menos hubo modificación o corrupción
+    except EOFError:
+        error("No se leyeron la cantidad de líneas correctas; procure que no haya habido modificación o corrupción de datos")
+    # IOError: cuando se intenta leer un archivo que no existe
+    # si no existe, esta es la primera corrida del programa, por lo que se puede empezar
+    # con los valores ya determinados
+    except IOError:
+        pass
+    # errores extra no esperados
+    except:
+        error()
+
 
 ########################################
 # Pruebas ##############################
 ########################################
-
+"""
 # configuración del torneo
+
 nombre_torneo = "copa airlines"
 equipos_participantes = 6
 equipos_clasifican = 2
@@ -1241,8 +1335,9 @@ juegos = [(('CRC', 'PAN'), ('USA', 'SAL'), ('MEX', 'HND')), (('CRC', 'SAL'), ('P
 resultados = [((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((2, 1), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ())]
 goleadores = [((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), (((('ovario', 10, 0), ('duende', 45, 3)), (('dickins', 90, 2),)), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ())]
 estadísticas = {'CRC': [1, 0, 0, 2, 1], 'USA': [0, 0, 1, 1, 2], 'MEX': [0, 0, 0, 0, 0], 'HND': [0, 0, 0, 0, 0], 'SAL': [0, 0, 0, 0, 0], 'PAN': [0, 0, 0, 0, 0]}
-
+"""
 ########################################
 # Función principal ####################
 ########################################
+cargar_datos()
 menú_principal()
