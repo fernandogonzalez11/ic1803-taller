@@ -23,7 +23,7 @@ import pickle
 ########################################
 
 # versión del programa
-VERSIÓN = "0.7.0"
+VERSIÓN = "0.7.1"
 
 # variables establecidas en la configuración
 nombre_torneo = ""
@@ -197,6 +197,7 @@ def menú_config_torneo():
             else:
                 break
     
+    print()
     # pedir confirmación
     if confirmar():
         nombre_torneo = datos[0]
@@ -316,6 +317,7 @@ def equipos_agregar():
             else:
                 break
 
+        print()
         if confirmar():
             equipos[código_equipo] = (nombre_equipo, posición)
 
@@ -798,30 +800,6 @@ def resultados_agregar(modificar=False):
             resultados[i_fecha] = res_fecha
             goleadores[i_fecha] = gols_fecha
 
-            """ # crear aliases (no son copias) de las estadísticas para editarlos
-            # estadística -> código: [jg, je, jp, gf, gc]
-            estadística_casa = estadísticas[casa]
-            estadística_visita = estadísticas[visita]
-
-            # pierde visita
-            if num_goles_casa > num_goles_visita:
-                estadística_casa[0] += 1
-                estadística_visita[2] += 1
-            # pierde casa
-            elif num_goles_visita > num_goles_casa:
-                estadística_casa[2] += 1
-                estadística_visita[0] += 1
-            # empatan
-            else:
-                estadística_casa[1] += 1
-                estadística_visita[1] += 1
-            
-            # en todos los casos, añadir los goles a favor y en contra
-            estadística_casa[3] += num_goles_casa
-            estadística_casa[4] += num_goles_visita
-            estadística_visita[3] += num_goles_visita
-            estadística_visita[4] += num_goles_casa """
-
 """
 funcionalidad 4.2: consultar resultados
 
@@ -993,7 +971,7 @@ def menú_tabla_posiciones():
         gd = estadística_equipo[3] - estadística_equipo[4]
 
         tuplas_por_ordenar.append((equipo, (puntos, gd, estadística_equipo[3], equipos[equipo][1])))
-
+        
     # ahora que se tiene la lista ordenada, se imprimen todas las estadísticas en ese orden
 
     # un sort con tuplas implica ordenar con el primer elemento
@@ -1031,7 +1009,7 @@ def menú_tabla_posiciones():
         # añadir los valores de la tabla al string por imprimir
         # añade un + solo con positivos en diferencia de goles
         if gd > 0:
-            gd = f"+{gc}"
+            gd = f"+{gd}"
 
         for valor in (jg + je + jf, jg, je, jf, gf, gc, gd, puntos):
             str_equipo += str(valor).ljust(5)
@@ -1268,13 +1246,13 @@ el tándem de guardar datos, más bien los carga a las variables respectivas
 def cargar_datos():
     # cargar todas las variables por editar como globales
     global nombre_torneo, equipos_participantes, puntos_ganado, puntos_empatado
-    global equipos, juegos, resultados
+    global equipos, juegos, resultados, goleadores
 
     try:
         # (1) cargar configuración
         arch_config = open("configuración.dat", "r")
-        # quitarle el \n
-        nombre_torneo = arch_config.readline()[:-2]
+        # quitarle el \n (en realidad es un solo carácter)
+        nombre_torneo = arch_config.readline()[:-1]
         # evaluar los demás a ints. eval va a ignorar el \n
         equipos_participantes = eval(arch_config.readline())
         equipos_clasifican = eval(arch_config.readline())
