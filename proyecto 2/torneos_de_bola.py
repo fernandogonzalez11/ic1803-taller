@@ -38,7 +38,7 @@ import webbrowser
 ########################################
 
 # versión del programa
-VERSIÓN = "0.9.1"
+VERSIÓN = "1.0.0"
 
 # nombre y puerto del servidor SMTP
 SERVIDOR_SMTP = "smtp.gmail.com"
@@ -1501,34 +1501,6 @@ def enviar_correo(correo_emisor: str, contraseña_emisor: str, correo_destino: s
     except:
         error("Ocurrió un error al enviar un correo (¿conexión, autenticación, servidor de correo caído?)")
 
-
-########################################
-# Pruebas ##############################
-########################################
-"""
-# configuración del torneo
-
-nombre_torneo = "copa airlines"
-equipos_participantes = 6
-equipos_clasifican = 2
-puntos_ganado = 3
-puntos_empatado = 1
-
-# diccionario con los equipos y su información
-equipos = {
-    "CRC": ("Costa Rica", 1),
-    "USA": ("Estados Unidos", 2),
-    "MEX": ("México", 3),
-    "HND": ("Honduras", 4),
-    "SAL": ("El Salvador", 5),
-    "PAN": ("Panamá", 6)
-}
-
-juegos = [(('CRC', 'PAN'), ('USA', 'SAL'), ('MEX', 'HND')), (('CRC', 'SAL'), ('PAN', 'HND'), ('USA', 'MEX')), (('CRC', 'HND'), ('SAL', 'MEX'), ('PAN', 'USA')), (('CRC', 'MEX'), ('HND', 'USA'), ('SAL', 'PAN')), (('CRC', 'USA'), ('MEX', 'PAN'), ('HND', 'SAL')), [('PAN', 'CRC'), ('SAL', 'USA'), ('HND', 'MEX')], [('SAL', 'CRC'), ('HND', 'PAN'), ('MEX', 'USA')], [('HND', 'CRC'), ('MEX', 'SAL'), ('USA', 'PAN')], [('MEX', 'CRC'), ('USA', 'HND'), ('PAN', 'SAL')], [('USA', 'CRC'), ('PAN', 'MEX'), ('SAL', 'HND')]]
-resultados = [((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((2, 1), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ())]
-goleadores = [((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), (((('ovario', 10, 0), ('duende', 45, 3)), (('dickins', 90, 2),)), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ()), ((), (), ())]
-estadísticas = {'CRC': [1, 0, 0, 2, 1], 'USA': [0, 0, 1, 1, 2], 'MEX': [0, 0, 0, 0, 0], 'HND': [0, 0, 0, 0, 0], 'SAL': [0, 0, 0, 0, 0], 'PAN': [0, 0, 0, 0, 0]}
-"""
 ########################################
 # Función principal ####################
 ########################################
