@@ -18,12 +18,34 @@ import os
 # utilizado para leer y escribir datos en archivos
 import pickle
 
+## módulos para correo
+
+# maneja envío de correos con el protocolo SMTP
+import smtplib
+
+# generador de un objeto de email
+from email.message import EmailMessage
+
+# generador de un texto en el estándar MIME
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# utilizado para abrir URLs en el navegador
+import webbrowser
+
 ########################################
 # Variables principales ################
 ########################################
 
 # versión del programa
-VERSIÓN = "0.7.1"
+VERSIÓN = "0.9.0"
+
+# nombre y puerto del servidor SMTP
+SERVIDOR_SMTP = "smtp.gmail.com"
+PUERTO_SMTP = 587
+
+# URL de video de ayuda
+URL_AYUDA = "https://youtu.be/a3ICNMQW7Ok"
 
 # variables establecidas en la configuración
 nombre_torneo = ""
@@ -69,16 +91,17 @@ def menú_principal():
         # título, nueva línea adicional
         print("TORNEOS DE BOLA".center(50))
         print()
-        print("1. Configuración del torneo")
-        print("2. Registrar equipos")
-        print("3. Crear calendario de juegos")
-        print("4. Consultar calendario de juegos")
-        print("5. Registrar los resultados")
-        print("6. Tabla de posiciones")
-        print("7. Tabla de goleadores")
-        print("8. Ayuda")
-        print("9. Acerca de")
-        print("0. Fin")
+        print("1.  Configuración del torneo")
+        print("2.  Registrar equipos")
+        print("3.  Crear calendario de juegos")
+        print("4.  Consultar calendario de juegos")
+        print("5.  Registrar los resultados")
+        print("6.  Tabla de posiciones")
+        print("7.  Tabla de goleadores")
+        print("8.  Restablecer datos")
+        print("9.  Ayuda")
+        print("10. Acerca de")
+        print("0.  Fin")
         print()
 
         # pedir opción
@@ -100,8 +123,10 @@ def menú_principal():
             case "7":
                 menú_tabla_goleadores()
             case "8":
-                pass
+                menú_reset()
             case "9":
+                menú_ayuda()
+            case "10":
                 menú_acerca_de()
             case "0":
                 guardar_datos()
@@ -421,7 +446,8 @@ def equipos_modificar():
                     break
             else:
                 break
-
+        
+        print()
         if confirmar():
             equipos[código_equipo] = (nuevo_nombre, nueva_posición)
 
@@ -679,6 +705,7 @@ def resultados_agregar(modificar=False):
             # si más bien no tiene datos
             elif modificar and not resultados[i_fecha][j_fecha]:
                 error("Este juego no está registrado, no se puede modificar")
+                continue
             
         else:
             error("Este juego no está en el calendario, no se puede registrar resultado")
@@ -814,34 +841,33 @@ def resultados_consultar():
         print("REGISTRAR RESULTADOS: CONSULTAR".center(50))
         print()
 
-        while True:
-            casa = input("Código del equipo casa:".ljust(30))
+        casa = input("Código del equipo casa:".ljust(30))
 
-            # cancelar con C
-            if casa == "C":
-                return
-            
-            visita = input("Código del equipo visita:".ljust(30))
+        # cancelar con C
+        if casa == "C":
+            return
+        
+        visita = input("Código del equipo visita:".ljust(30))
 
-            # como juegos comprende a todos los del producto cartesiano equipos x equipos,
-            # solo se debe verificar que ambos equipos estén y no sean iguales
-            if casa in equipos and visita in equipos and casa != visita:
-                # se encuentra la posición de la fecha y del juego en esa fecha
-                # cuando el ciclo se corta, ya se tienen los índices almacenados
-                for i_fecha, fecha in enumerate(juegos):
-                    try:
-                        j_fecha = fecha.index((casa, visita))
-                        break
-                    except:
-                        continue
-                
-                # si el resultado del partido no tiene datos (es tupla vacía)
-                if not resultados[i_fecha][j_fecha]:
-                    error("Este juego no está registrado, no se puede consultar")
-                else:
+        # como juegos comprende a todos los del producto cartesiano equipos x equipos,
+        # solo se debe verificar que ambos equipos estén y no sean iguales
+        if casa in equipos and visita in equipos and casa != visita:
+            # se encuentra la posición de la fecha y del juego en esa fecha
+            # cuando el ciclo se corta, ya se tienen los índices almacenados
+            for i_fecha, fecha in enumerate(juegos):
+                try:
+                    j_fecha = fecha.index((casa, visita))
                     break
-            else:
-                error("Este juego no está en el calendario, no se puede consultar resultado")
+                except:
+                    continue
+            
+            # si el resultado del partido no tiene datos (es tupla vacía)
+            if not resultados[i_fecha][j_fecha]:
+                error("Este juego no está registrado, no se puede consultar")
+                continue
+        else:
+            error("Este juego no está en el calendario, no se puede consultar resultado")
+            continue
         
         # línea separadora entre códigos y despliegues
         print()
@@ -955,6 +981,12 @@ menú de opción 6: despliega la tabla de posiciones de los equipos, según el s
 def menú_tabla_posiciones():
     limpiar_terminal()
 
+    # imprimir los encabezados
+    print(nombre_torneo)
+    print("Tabla de posiciones")
+    print("Equipos que clasifican:", equipos_clasifican)
+    print()
+
     # verificar que el calendario de juegos esté hecho (y subsecuentemente resultados y goleadores)
     if not juegos:
         error("Debe primero crear el calendario de juegos")
@@ -970,7 +1002,8 @@ def menú_tabla_posiciones():
         puntos = estadística_equipo[0] * puntos_ganado + estadística_equipo[1] * puntos_empatado
         gd = estadística_equipo[3] - estadística_equipo[4]
 
-        tuplas_por_ordenar.append((equipo, (puntos, gd, estadística_equipo[3], equipos[equipo][1])))
+        # se usa el negativo de la posición en el escalafón para ordenar 
+        tuplas_por_ordenar.append((equipo, (puntos, gd, estadística_equipo[3], -equipos[equipo][1])))
         
     # ahora que se tiene la lista ordenada, se imprimen todas las estadísticas en ese orden
 
@@ -979,15 +1012,9 @@ def menú_tabla_posiciones():
     # se usa reverse=True para ordenar de más a menos valores
     tuplas_por_ordenar.sort(key=lambda tupla: tupla[1], reverse=True)
 
-    # imprimir los encabezados
-    print(nombre_torneo)
-    print("Tabla de posiciones")
-    print("Equipos que clasifican:", equipos_clasifican)
-    print()
-
     str_encabezado = "Equipo".ljust(20)
 
-    for encabezado in ("JJ", "JG", "JP", "JE", "GF", "GC", "GD", "Puntos"):
+    for encabezado in ("JJ", "JG", "JE", "JP", "GF", "GC", "GD", "Puntos"):
         str_encabezado += encabezado.ljust(5)
     
     str_encabezado += "\n" + "─" * (20 + 5 * 8 + 2)
@@ -1017,14 +1044,30 @@ def menú_tabla_posiciones():
         print(str_equipo)
         str_equipos += str_equipo + "\n"
 
-    # TODO: enviar correo
     print()
     if confirmar("¿Enviar un correo electrónico con la tabla?"):
         while True:
-            correo = input("Digite su dirección de correo: ")
+            correo_destino = input("Digite su dirección de correo: ")
+
+            # validar el correo
+            if not "@" in correo_destino[1:-1]:
+                error("El correo no es válido")
+                continue
+
+            html = crear_html(str_encabezado + "\n" + str_equipos)
+
+            # obtener de correo_emisor.txt el correo y la contaseña
+            archivo = open("correo_emisor.txt", "r")
+            correo_emisor = archivo.readline().rstrip()
+            contraseña = archivo.readline().rstrip()
+            archivo.close()
+
+            enviar_correo(correo_emisor, contraseña, correo_destino,
+                "Torneos de bola: tabla de posiciones", html)
             return
 
 """
+
 menú de función 7: despliega la tabla de goleadores en orden de más a menos goles hechos
 """
 def menú_tabla_goleadores():
@@ -1033,6 +1076,11 @@ def menú_tabla_goleadores():
     # y ordenarla según key = elem[1]
 
     limpiar_terminal()
+
+    # imprimir encabezados
+    print(nombre_torneo)
+    print("Tabla de goleadores")
+    print()
 
     # verificar que el calendario de juegos esté hecho (y subsecuentemente resultados y goleadores)
     if not juegos:
@@ -1061,11 +1109,6 @@ def menú_tabla_goleadores():
     tuplas_ordenar = dict_goleadores.items()
     tuplas_ordenar = sorted(tuplas_ordenar, key=lambda tupla: tupla[1], reverse=True)
     
-    # imprimir encabezados
-    print(nombre_torneo)
-    print("Tabla de goleadores")
-    print()
-    
     # con la lista ordenada, se puede imprimir en ese orden
     str_encabezado = "Jugador".ljust(20) + "Equipo".ljust(20) + "Goles"
     str_encabezado += "\n" + "─" * (45)
@@ -1082,10 +1125,82 @@ def menú_tabla_goleadores():
     print(str_goleadores)
     
     print()
-    confirmar(solo_aceptar=True)
-                        
+    if confirmar("¿Enviar un correo electrónico con la tabla?"):
+        while True:
+            correo_destino = input("Digite su dirección de correo: ")
+
+            # validar el correo
+            if not "@" in correo_destino[1:-1]:
+                error("El correo no es válido")
+                continue
+
+            html = crear_html(str_encabezado + "\n" + str_goleadores)
+
+            # obtener de correo_emisor.txt el correo y la contaseña
+            archivo = open("correo_emisor.txt", "r")
+            correo_emisor = archivo.readline().rstrip()
+            contraseña = archivo.readline().rstrip()
+            archivo.close()
+
+            enviar_correo(correo_emisor, contraseña, correo_destino, 
+                "Torneos de bola: tabla de goleadores", html)
+            return
+
 """
-menú de opción 9: información del programa
+menú de opción 10: restablecer toda la información a su valor de fábrica
+"""
+def menú_reset():
+    # cargar variables por editar como globales
+    global nombre_torneo, equipos_participantes, equipos_clasifican, puntos_ganado, puntos_empatado
+
+    limpiar_terminal()
+
+    # título, nueva línea adicional
+    print("TORNEOS DE BOLA".center(50))
+    print("RESTABLECER DATOS".center(50))
+    print()
+
+    print("Seguidamente, se reinicializarán todos los datos actuales a sus valores de fábrica.")
+    print("También se borrarán los archivos de información autogenerados (no así correo_emisor.txt).""")
+    print()
+    print("[Nota] Este es un paso irreversible.")
+    print()
+
+    if confirmar() and confirmar("CONFIRMA EL RESTABLECIMIENTO A VALORES DE FÁBRICA"):
+        try:
+            nombre_torneo = ""
+            equipos_participantes = equipos_clasifican = puntos_ganado = puntos_empatado = 0
+            equipos.clear()
+            juegos.clear()
+            resultados.clear()
+            goleadores.clear()
+
+            for archivo in ["configuración.dat", "equipos.dat", "juegos.dat"]:
+                if os.path.isfile(archivo):
+                    os.remove(archivo)
+        except:
+            error("Ocurrió un error al restablecer los valores; es posible que no todos se hayan restablecido")
+
+
+"""
+menú de opción 9: ayuda
+"""
+def menú_ayuda():
+    limpiar_terminal()
+
+    # título, nueva línea adicional
+    print("TORNEOS DE BOLA".center(50))
+    print("AYUDA".center(50))
+    print()
+
+    print(f"Link de video: {URL_AYUDA}")
+    webbrowser.open(URL_AYUDA)
+    
+    print()
+    confirmar(solo_aceptar=True)
+
+"""
+menú de opción 10: información del programa
 """
 def menú_acerca_de():
     limpiar_terminal()
@@ -1245,7 +1360,7 @@ el tándem de guardar datos, más bien los carga a las variables respectivas
 """
 def cargar_datos():
     # cargar todas las variables por editar como globales
-    global nombre_torneo, equipos_participantes, puntos_ganado, puntos_empatado
+    global nombre_torneo, equipos_participantes, equipos_clasifican, puntos_ganado, puntos_empatado
     global equipos, juegos, resultados, goleadores
 
     try:
@@ -1285,6 +1400,63 @@ def cargar_datos():
     # errores extra no esperados
     except:
         error()
+
+"""
+crea un string formateado en HTML dada una tabla ASCII
+
+entrada: str (tabla ASCII)
+salida: str (texto HTML)
+"""
+def crear_html(tabla_ascii: str) -> str:
+    return f"""
+    <html>
+        <body>
+            <pre>{tabla_ascii}</pre>
+        </body>
+    </html>
+    """
+
+"""
+envía un correo de un correo emisor a un destinatario
+para el correo emisor se necesita la contraseña para autenticación
+
+correo Outlook: usa la contraseña de correo normal
+    no funciona en correos con políticas restringidas como estudiantec.cr
+
+correo Gmail: usa una contraseña de aplicación de uso único
+    se necesita activar autenticación en 2 pasos
+    crear en https://myaccount.google.com/apppasswords
+
+entradas: str (correo emisor), str (contraseña del emisor),
+    str (correo del destinatario), str (sujeto), str (contenido)
+"""
+def enviar_correo(correo_emisor: str, contraseña_emisor: str, correo_destino: str, sujeto: str, contenido: str):
+    try:
+        # crear un texto en estándar MIME Multiparte para adjuntar HTML
+        email = MIMEMultipart("alternative")
+
+        # llenar asunto, emisor y destino
+        email["Subject"] = sujeto
+        email["From"] = correo_emisor
+        email["To"] = correo_destino
+
+        # añadir el contenido en HTML
+        email.attach(MIMEText(contenido, "html", "utf-8"))
+
+        # contectarse al servidor SMTP determinado
+        smtp = smtplib.SMTP(SERVIDOR_SMTP, PUERTO_SMTP)
+
+        # iniciar encriptación STARTTLS
+        smtp.starttls()
+
+        smtp.login(correo_emisor, contraseña_emisor)
+
+        # enviar email como string
+        smtp.sendmail(correo_emisor, correo_destino, email.as_string())
+
+        smtp.quit()
+    except:
+        error("Ocurrió un error al enviar un correo (¿conexión, autenticación, servidor de correo caído?)")
 
 
 ########################################
