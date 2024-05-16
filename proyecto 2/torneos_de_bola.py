@@ -38,14 +38,14 @@ import webbrowser
 ########################################
 
 # versión del programa
-VERSIÓN = "0.9.0"
+VERSIÓN = "0.9.1"
 
 # nombre y puerto del servidor SMTP
 SERVIDOR_SMTP = "smtp.gmail.com"
 PUERTO_SMTP = 587
 
 # URL de video de ayuda
-URL_AYUDA = "https://youtu.be/a3ICNMQW7Ok"
+URL_AYUDA = "https://youtu.be/DzkalmH7gB0"
 
 # variables establecidas en la configuración
 nombre_torneo = ""
@@ -176,7 +176,7 @@ def menú_config_torneo():
             datos[1] = int(datos[1])
 
             if datos[1] < 2 or datos[1] % 2 != 0:
-                error("La cantidad de equipos participantes debe ser par y mayor que 2")
+                error("La cantidad de equipos participantes debe ser par y mayor o igual que 2")
             else:
                 break
     
@@ -400,11 +400,11 @@ def equipos_modificar():
         # obtener el equipo actual
         equipo = equipos[código_equipo]
 
-        print(" " * 55 + "NUEVOS VALORES")
+        print(" " * 45 + "NUEVOS VALORES")
 
         # pedir nombre del equipo
         while True:
-            nuevo_nombre = input("Nombre del equipo".ljust(30) + equipo[0].rjust(20) + " =>  ")
+            nuevo_nombre = input("Nombre del equipo".ljust(30) + equipo[0].rjust(1) + " =>  ")
 
             # llenar automáticamente el valor y salir
             if nuevo_nombre == "":
@@ -424,7 +424,7 @@ def equipos_modificar():
         
         # pedir posición en el escalafón
         while True:
-            nueva_posición = input("Posición en el escalafón".ljust(30) + str(equipo[1]).rjust(20) + " =>  ")
+            nueva_posición = input("Posición en el escalafón".ljust(30) + str(equipo[1]).rjust(1) + " =>  ")
 
             # llenar automáticamente el valor y salir
             if nueva_posición == "":
@@ -951,8 +951,36 @@ def resultados_eliminar():
             error("Este juego no está en el calendario, no se puede eliminar resultado")
             continue
         
-        # línea separadora entre códigos y despliegues
         print()
+
+        resultado = resultados[i_fecha][j_fecha]
+
+        # imprimir el puntaje de cada equipo
+        print(casa.center(7) + "-" + visita.center(7))
+        print(str(resultado[0]).center(7) + "-" + str(resultado[1]).center(7))
+        print()
+        
+        goles = goleadores[i_fecha][j_fecha]
+        # imprimir los goles del equipo casa
+        if goles[0]:
+            print("Goles de", equipos[casa][0], "(casa):")
+            for gol_casa in goles[0]:
+                string_gol = f"  {gol_casa[0]} en '{gol_casa[1]}"
+                if gol_casa[2]:
+                    string_gol += f" +{gol_casa[2]}"
+
+                print(string_gol)
+            print()
+
+        if goles[1]:
+            print("Goles de", equipos[visita][0], "(visita):")
+            for gol_visita in goles[1]:
+                string_gol = f"  {gol_visita[0]} en '{gol_visita[1]}"
+                if gol_visita[2]:
+                    string_gol += f" +{gol_visita[2]}"
+
+                print(string_gol)
+            print()
 
         # pedir doble confirmación de eliminación
         if confirmar() and confirmar("CONFIRMA LA ELIMINACIÓN"):
@@ -1012,12 +1040,16 @@ def menú_tabla_posiciones():
     # se usa reverse=True para ordenar de más a menos valores
     tuplas_por_ordenar.sort(key=lambda tupla: tupla[1], reverse=True)
 
-    str_encabezado = "Equipo".ljust(20)
+    # para formato, usar 20 o más si fuese necesario
+    max_encabezado_equipo = max([len(equipos[equipo][0]) + 2 for equipo in equipos])
+    max_encabezado_equipo = max(max_encabezado_equipo, 20)
+
+    str_encabezado = "Equipo".ljust(max_encabezado_equipo)
 
     for encabezado in ("JJ", "JG", "JE", "JP", "GF", "GC", "GD", "Puntos"):
         str_encabezado += encabezado.ljust(5)
     
-    str_encabezado += "\n" + "─" * (20 + 5 * 8 + 2)
+    str_encabezado += "\n" + "─" * (max_encabezado_equipo + 5 * 8 + 2)
 
     print(str_encabezado)
 
@@ -1031,7 +1063,7 @@ def menú_tabla_posiciones():
         # sobra de estadísticas_resto al final
         puntos, gd, *_ = estadísticas_resto
 
-        str_equipo = equipos[equipo][0].ljust(20)
+        str_equipo = equipos[equipo][0].ljust(max_encabezado_equipo)
         
         # añadir los valores de la tabla al string por imprimir
         # añade un + solo con positivos en diferencia de goles
@@ -1088,6 +1120,9 @@ def menú_tabla_goleadores():
         return
     
     dict_goleadores = {}
+
+    # si hay un jugador con más caracteres se toma en cuenta reasignando esta variable
+    max_encabezado_jugador = 20
     
     # para cada partido en la lista de goleadores
     for i_fecha, fecha in enumerate(goleadores):
@@ -1097,11 +1132,15 @@ def menú_tabla_goleadores():
             # cada goleador en tanto el equipo de casa como el de visita
             for k_equipo, equipo in enumerate(partido):
                 for goleador in equipo:
+                    # nombre del goleador y el equipo al que pertenece
                     tupla_goleador = (goleador[0], códigos_equipo[k_equipo])
                     if tupla_goleador in dict_goleadores:
                         dict_goleadores[tupla_goleador] += 1
                     else:
                         dict_goleadores[tupla_goleador] = 1
+
+                    if len(goleador[0]) + 2 > max_encabezado_jugador:
+                        max_encabezado_jugador = len(goleador[0]) + 2
                         
     # ahora se tiene un diccionario con formato (nombre_goleador, código_equipo): goles
     # se hace una lista y se ordena con llave de goles
@@ -1109,9 +1148,13 @@ def menú_tabla_goleadores():
     tuplas_ordenar = dict_goleadores.items()
     tuplas_ordenar = sorted(tuplas_ordenar, key=lambda tupla: tupla[1], reverse=True)
     
+    # para formato, usar 20 o más si fuese necesario
+    max_encabezado_equipo = max([len(equipos[equipo][0]) + 2 for equipo in equipos])
+    max_encabezado_equipo = max(max_encabezado_equipo, 20)
+
     # con la lista ordenada, se puede imprimir en ese orden
-    str_encabezado = "Jugador".ljust(20) + "Equipo".ljust(20) + "Goles"
-    str_encabezado += "\n" + "─" * (45)
+    str_encabezado = "Jugador".ljust(max_encabezado_jugador) + "Equipo".ljust(max_encabezado_equipo) + "Goles"
+    str_encabezado += "\n" + "─" * (max_encabezado_jugador + max_encabezado_equipo + 5)
     
     print(str_encabezado)
     
@@ -1120,7 +1163,7 @@ def menú_tabla_goleadores():
         # desempaquetas los valores de la lista ordenada
         (nombre_goleador, código_equipo), goles = goleador
         
-        str_goleadores += nombre_goleador.ljust(20) + equipos[código_equipo][0].ljust(20) + str(goles) + "\n"
+        str_goleadores += nombre_goleador.ljust(max_encabezado_jugador) + equipos[código_equipo][0].ljust(max_encabezado_equipo) + str(goles) + "\n"
     
     print(str_goleadores)
     
