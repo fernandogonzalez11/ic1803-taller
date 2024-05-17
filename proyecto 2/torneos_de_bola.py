@@ -38,7 +38,7 @@ import webbrowser
 ########################################
 
 # versión del programa
-VERSIÓN = "1.0.0"
+VERSIÓN = "1.0.1"
 
 # nombre y puerto del servidor SMTP
 SERVIDOR_SMTP = "smtp.gmail.com"
@@ -424,7 +424,7 @@ def equipos_modificar():
         
         # pedir posición en el escalafón
         while True:
-            nueva_posición = input("Posición en el escalafón".ljust(30) + str(equipo[1]).rjust(1) + " =>  ")
+            nueva_posición = input("Posición en el escalafón".ljust(30) + str(equipo[1]).rjust(10) + " =>  ")
 
             # llenar automáticamente el valor y salir
             if nueva_posición == "":
