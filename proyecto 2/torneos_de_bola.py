@@ -38,14 +38,10 @@ import webbrowser
 ########################################
 
 # versión del programa
-VERSIÓN = "1.0.1"
-
-# nombre y puerto del servidor SMTP
-SERVIDOR_SMTP = "smtp.gmail.com"
-PUERTO_SMTP = 587
+VERSIÓN = "1.1.0"
 
 # URL de video de ayuda
-URL_AYUDA = "https://youtu.be/DzkalmH7gB0"
+ARCHIVO_AYUDA = "manual_de_usuario_torneos_de_bola.pdf"
 
 # variables establecidas en la configuración
 nombre_torneo = ""
@@ -884,7 +880,7 @@ def resultados_consultar():
         if goles[0]:
             print("Goles de", equipos[casa][0], "(casa):")
             for gol_casa in goles[0]:
-                string_gol = f"  {gol_casa[0]} en '{gol_casa[1]}"
+                string_gol = f"  {gol_casa[0]} en {gol_casa[1]}'"
                 if gol_casa[2]:
                     string_gol += f" +{gol_casa[2]}"
 
@@ -894,7 +890,7 @@ def resultados_consultar():
         if goles[1]:
             print("Goles de", equipos[visita][0], "(visita):")
             for gol_visita in goles[1]:
-                string_gol = f"  {gol_visita[0]} en '{gol_visita[1]}"
+                string_gol = f"  {gol_visita[0]} en {gol_visita[1]}'"
                 if gol_visita[2]:
                     string_gol += f" +{gol_visita[2]}"
 
@@ -965,7 +961,7 @@ def resultados_eliminar():
         if goles[0]:
             print("Goles de", equipos[casa][0], "(casa):")
             for gol_casa in goles[0]:
-                string_gol = f"  {gol_casa[0]} en '{gol_casa[1]}"
+                string_gol = f"  {gol_casa[0]} en {gol_casa[1]}'"
                 if gol_casa[2]:
                     string_gol += f" +{gol_casa[2]}"
 
@@ -975,7 +971,7 @@ def resultados_eliminar():
         if goles[1]:
             print("Goles de", equipos[visita][0], "(visita):")
             for gol_visita in goles[1]:
-                string_gol = f"  {gol_visita[0]} en '{gol_visita[1]}"
+                string_gol = f"  {gol_visita[0]} en {gol_visita[1]}'"
                 if gol_visita[2]:
                     string_gol += f" +{gol_visita[2]}"
 
@@ -1088,13 +1084,15 @@ def menú_tabla_posiciones():
 
             html = crear_html(str_encabezado + "\n" + str_equipos)
 
-            # obtener de correo_emisor.txt el correo y la contaseña
+            # obtener de correo_emisor.txt sus datos en orden
             archivo = open("correo_emisor.txt", "r")
+            servidor_smtp = archivo.readline().rstrip()
+            puerto_smtp = eval(archivo.readline().rstrip())
             correo_emisor = archivo.readline().rstrip()
             contraseña = archivo.readline().rstrip()
             archivo.close()
 
-            enviar_correo(correo_emisor, contraseña, correo_destino,
+            enviar_correo(servidor_smtp, puerto_smtp, correo_emisor, contraseña, correo_destino,
                 "Torneos de bola: tabla de posiciones", html)
             return
 
@@ -1179,13 +1177,15 @@ def menú_tabla_goleadores():
 
             html = crear_html(str_encabezado + "\n" + str_goleadores)
 
-            # obtener de correo_emisor.txt el correo y la contaseña
+            # obtener de correo_emisor.txt sus datos en orden
             archivo = open("correo_emisor.txt", "r")
+            servidor_smtp = archivo.readline().rstrip()
+            puerto_smtp = eval(archivo.readline().rstrip())
             correo_emisor = archivo.readline().rstrip()
             contraseña = archivo.readline().rstrip()
             archivo.close()
 
-            enviar_correo(correo_emisor, contraseña, correo_destino, 
+            enviar_correo(servidor_smtp, puerto_smtp, correo_emisor, contraseña, correo_destino, 
                 "Torneos de bola: tabla de goleadores", html)
             return
 
@@ -1236,8 +1236,8 @@ def menú_ayuda():
     print("AYUDA".center(50))
     print()
 
-    print(f"Link de video: {URL_AYUDA}")
-    webbrowser.open(URL_AYUDA)
+    print(f"Archivo del manual: {ARCHIVO_AYUDA}")
+    webbrowser.open(ARCHIVO_AYUDA)
     
     print()
     confirmar(solo_aceptar=True)
@@ -1473,7 +1473,7 @@ correo Gmail: usa una contraseña de aplicación de uso único
 entradas: str (correo emisor), str (contraseña del emisor),
     str (correo del destinatario), str (sujeto), str (contenido)
 """
-def enviar_correo(correo_emisor: str, contraseña_emisor: str, correo_destino: str, sujeto: str, contenido: str):
+def enviar_correo(servidor_smtp: str, puerto_smtp: int, correo_emisor: str, contraseña_emisor: str, correo_destino: str, sujeto: str, contenido: str):
     try:
         # crear un texto en estándar MIME Multiparte para adjuntar HTML
         email = MIMEMultipart("alternative")
@@ -1487,7 +1487,7 @@ def enviar_correo(correo_emisor: str, contraseña_emisor: str, correo_destino: s
         email.attach(MIMEText(contenido, "html", "utf-8"))
 
         # contectarse al servidor SMTP determinado
-        smtp = smtplib.SMTP(SERVIDOR_SMTP, PUERTO_SMTP)
+        smtp = smtplib.SMTP(servidor_smtp, puerto_smtp)
 
         # iniciar encriptación STARTTLS
         smtp.starttls()
