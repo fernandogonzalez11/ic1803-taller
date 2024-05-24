@@ -38,7 +38,7 @@ import webbrowser
 ########################################
 
 # versión del programa
-VERSIÓN = "1.1.0"
+VERSIÓN = "1.1.1"
 
 # URL de video de ayuda
 ARCHIVO_AYUDA = "manual_de_usuario_torneos_de_bola.pdf"
@@ -1093,7 +1093,7 @@ def menú_tabla_posiciones():
             archivo.close()
 
             enviar_correo(servidor_smtp, puerto_smtp, correo_emisor, contraseña, correo_destino,
-                "Torneos de bola: tabla de posiciones", html)
+                f"Tabla de posiciones: {nombre_torneo}", html)
             return
 
 """
@@ -1186,7 +1186,7 @@ def menú_tabla_goleadores():
             archivo.close()
 
             enviar_correo(servidor_smtp, puerto_smtp, correo_emisor, contraseña, correo_destino, 
-                "Torneos de bola: tabla de goleadores", html)
+                f"Tabla de goleadores: {nombre_torneo}", html)
             return
 
 """
