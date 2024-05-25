@@ -1256,7 +1256,7 @@ def menú_acerca_de():
     print(f"Versión: {VERSIÓN}".ljust(50))
     print("Fecha de creación: 2024/05/03".ljust(50))
     print("Autor: Fernando González Robles".ljust(50))
-    print("Programa 1 - IC1803 Taller de Programación".ljust(50))
+    print("Programa 2 - IC1803 Taller de Programación".ljust(50))
     
     print("                     ___")
     print(" o__        o__     |   |\\")
