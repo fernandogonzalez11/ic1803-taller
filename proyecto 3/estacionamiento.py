@@ -71,7 +71,7 @@ def menú_principal():
     # crear el submenú del dinero del cajero
     menubar_dinero = tk.Menu(menubar, tearoff=0)
     menubar_dinero.add_command(label="Saldo del cajero", command=saldo_cajero)
-    menubar_dinero.add_command(label="Cargar cajero")
+    menubar_dinero.add_command(label="Cargar cajero", command=cargar_cajero)
     menubar.add_cascade(label="Dinero del cajero", menu=menubar_dinero)
 
     menubar.add_command(label="Entrada del vehículo")
@@ -276,7 +276,7 @@ def configuración():
     # poblar los textos y entradas
     for i, texto in enumerate(textos):
         label = ttk.Label(entries, text=texto)
-        label.grid(sticky=W, column=0, row=i + 1, padx=10, pady=3)
+        label.grid(sticky=tk.W, column=0, row=i + 1, padx=10, pady=3)
         label.config(font = (FUENTE, 12))
 
         if i == 5 or i == 9:
@@ -362,7 +362,7 @@ def saldo_cajero():
         i += 1
 
     # totales de monedas
-    ttk.Label(contents, text="Total").grid(row=i, column=0, padx=10, sticky="w")
+    ttk.Label(contents, text="Total de monedas").grid(row=i, column=0, padx=10, sticky="w")
     ttk.Label(contents, text=str(totales[0])).grid(row=i, column=1, padx=10)
     ttk.Label(contents, text=str(totales[1])).grid(row=i, column=2, padx=10)
     ttk.Label(contents, text=str(totales[2])).grid(row=i, column=3, padx=10)
@@ -374,6 +374,234 @@ def saldo_cajero():
     ttk.Label(contents).grid(row=i, columnspan=6)
     i += 1
 
+    for denom, (ent, sal) in cantidad_billetes.items():
+        ttk.Label(contents, text=f"Billetes de {denom}").grid(row=i, column=0, padx=10, sticky="w")
+
+        ttk.Label(contents, text=str(ent)).grid(row=i, column=1, padx=10)
+        ttk.Label(contents, text=str(ent * denom)).grid(row=i, column=2, padx=10)
+
+        ttk.Label(contents, text=str(sal)).grid(row=i, column=3, padx=10)
+        ttk.Label(contents, text=str(sal * denom)).grid(row=i, column=4, padx=10)
+
+        ttk.Label(contents, text=str(ent - sal)).grid(row=i, column=5, padx=10)
+        ttk.Label(contents, text=str((ent - sal) * denom)).grid(row=i, column=6, padx=10)
+
+        totales[4] += ent
+        totales[5] += ent * denom
+        totales[6] += sal
+        totales[7] += sal * denom
+
+        i += 1
+
+    # totales de billetes
+    ttk.Label(contents, text="Total de billetes").grid(row=i, column=0, padx=10, sticky="w")
+    ttk.Label(contents, text=str(totales[4])).grid(row=i, column=1, padx=10)
+    ttk.Label(contents, text=str(totales[5])).grid(row=i, column=2, padx=10)
+    ttk.Label(contents, text=str(totales[6])).grid(row=i, column=3, padx=10)
+    ttk.Label(contents, text=str(totales[7])).grid(row=i, column=4, padx=10)
+    ttk.Label(contents, text=str(totales[4] - totales[6])).grid(row=i, column=5, padx=10)
+    ttk.Label(contents, text=str(totales[5] - totales[7])).grid(row=i, column=6, padx=10)
+
+    ttk.Checkbutton(botones, text="Vaciar cajero", variable=vaciar).grid(row=0, pady=10)
+    ttk.Button(botones, text="ok", command=vaciar_o_no).grid(row=1, column=0, padx=10)
+    
+    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
+
+""" despliega saldo del cajero en sus diferentes denominaciones """
+def cargar_cajero():
+    clear_frame()
+
+    # variable que detecta errores al validar entradas de carga
+    errores_en = []
+
+    # TODO: total de monedas/billetes
+    # qué tal si hago otro dict (otro dict!!!!!!!) de tipo {denom: valor_actual}
+    # lo actualizo acá y llamo a un generador de los totales con ese dict
+    # inicializar label total en 0 y editarlo con .config
+    def editar(name, index, mode, variables_extra):
+        denom, saldo, carga, carga_total, saldo_final_cant, saldo_final_total = variables_extra
+        nonlocal errores_en
+        try:
+            string = carga.get()
+            
+            if not string:
+                if denom in cambios:
+                    del cambios[denom]
+                    carga_total.config(text="0")
+                    saldo_final_cant.config(text="0")
+                    saldo_final_total.config(text="0")
+            else:
+                
+                cambios[denom] = int(carga.get())
+                
+                nuevo_saldo = saldo + cambios[denom]
+                
+                carga_total.config(text=str(cambios[denom] * denom))
+                saldo_final_cant.config(text=str(nuevo_saldo))
+                saldo_final_total.config(text=str(nuevo_saldo * denom))
+
+                if denom in errores_en:
+                    errores_en.remove(denom)
+        except ValueError:
+            errores_en.append(denom)
+
+            if denom in cambios:
+                del cambios[denom]
+                carga_total.config(text="-")
+                saldo_final_cant.config(text="-")
+                saldo_final_total.config(text="-")
+    
+    """ def editar(name, index, mode, carga, cambios, saldo, carga_total, saldo_final_cant, saldo_final_total):
+            print("holi")
+            nonlocal errores_en
+            try:
+                string = carga.get()
+
+                if not string:
+                    if denom in cambios:
+                        del cambios[denom]
+                else:
+                    cambios[denom] = int(carga.get())
+                    nuevo_saldo = saldo[denom] + cambios[denom]
+
+                    carga_total.config(text=str(cambios[denom] * denom))
+                    saldo_final_cant.config(text=str(nuevo_saldo))
+                    saldo_final_total.config(text=str(nuevo_saldo * denom))
+
+                    if denom in errores_en:
+                        errores_en.remove(denom)
+            except:
+                errores_en.append(denom)
+
+                if denom in cambios:
+                    del cambios[denom] """
+
+    clear_frame()
+    
+    # crear el encabezado
+    título = ttk.Label(frame, text="Estacionamiento - cargar cajero")
+    título.grid(pady=10, row=0, column=0, sticky="w")
+    título.config(font=(FUENTE, 16))    
+
+    # sección de contenidos que tiene los despliegues de datos
+    contents = ttk.Frame(frame)
+    contents.grid(pady=10, row=1, column=0, sticky="w")
+
+    ttk.Label(contents, text="Denominación").grid(row=1, column=0, padx=10, sticky="w")
+    ttk.Label(contents, text="Saldo antes de la carga").grid(row=0, column=1, columnspan=2, padx=10)
+    ttk.Label(contents, text="Carga").grid(row=0, column=3, columnspan=2, padx=10)
+    ttk.Label(contents, text="Saldo").grid(row=0, column=5, columnspan=2, padx=10)
+
+    ttk.Label(contents, text="Cantidad").grid(row=1, column=1, padx=10, sticky="w")
+    ttk.Label(contents, text="Cantidad").grid(row=1, column=3, padx=10, sticky="w")
+    ttk.Label(contents, text="Cantidad").grid(row=1, column=5, padx=10, sticky="w")
+
+    ttk.Label(contents, text="Total").grid(row=1, column=2, padx=10, sticky="e")
+    ttk.Label(contents, text="Total").grid(row=1, column=4, padx=10, sticky="e")
+    ttk.Label(contents, text="Total").grid(row=1, column=6, padx=10, sticky="e")
+
+    ttk.Label(contents).grid(row=2, columnspan=6)
+
+    # botones de vaciar, ok, cancelar
+    botones = ttk.Frame(frame)
+    botones.grid(row=2, column=0, sticky="w")
+
+    i = 3
+    cantidad_monedas, cantidad_billetes = cantidades_denominaciones
+
+    # se crea un diccionario con los saldos de todas las denominaciones
+    # también se creará un diccionario con cambios de la carga 
+    saldos = {}
+    cambios = {}
+    labels_asociados = {}
+
+    for denom, (ent, sal) in cantidad_monedas.items():
+        saldos[denom] = ent - sal
+
+    for denom, (ent, sal) in cantidad_billetes.items():
+        saldos[denom] = ent - sal
+
+    totales = [0, 0, 0, 0]
+    for denom in monedas:
+        if denom == 0:
+            break
+
+        saldo = saldos[denom]
+
+        ttk.Label(contents, text=f"Monedas de {denom}").grid(row=i, column=0, padx=10, sticky="w")
+
+        ttk.Label(contents, text=str(saldo)).grid(row=i, column=1, padx=10)
+        ttk.Label(contents, text=str(saldo * denom)).grid(row=i, column=2, padx=10)
+
+        # ttk.Label(contents, text=str(sal)).grid(row=i, column=3, padx=10)
+        carga = tk.StringVar()
+        ttk.Entry(contents, textvariable=carga, width=7).grid(row=i, column=3, padx=10)
+        
+        carga_total = ttk.Label(contents, text=str(sal * denom))
+        carga_total.grid(row=i, column=4, padx=10)
+
+        saldo_final_cant = ttk.Label(contents, text=str(saldo))
+        saldo_final_cant.grid(row=i, column=5, padx=10)
+
+        saldo_final_total = ttk.Label(contents, text=str(saldo * denom))
+        saldo_final_total.grid(row=i, column=6, padx=10)
+
+        carga.trace_add(
+            "write",
+            lambda n, i, m, variables_extra=(denom, saldo, carga, carga_total, saldo_final_cant, saldo_final_total): editar(n, i, m, variables_extra)
+        )
+
+        i += 1
+
+    ttk.Label(contents).grid(row=i)
+    i += 1
+
+    for denom in billetes:
+        if denom == 0:
+            break
+
+        saldo = saldos[denom]
+
+        ttk.Label(contents, text=f"Billetes de {denom}").grid(row=i, column=0, padx=10, sticky="w")
+
+        ttk.Label(contents, text=str(saldo)).grid(row=i, column=1, padx=10)
+        ttk.Label(contents, text=str(saldo * denom)).grid(row=i, column=2, padx=10)
+
+        # ttk.Label(contents, text=str(sal)).grid(row=i, column=3, padx=10)
+        carga = tk.StringVar()
+        ttk.Entry(contents, textvariable=carga, width=7).grid(row=i, column=3, padx=10)
+        
+        carga_total = ttk.Label(contents, text=str(sal * denom))
+        carga_total.grid(row=i, column=4, padx=10)
+
+        saldo_final_cant = ttk.Label(contents, text=str(saldo))
+        saldo_final_cant.grid(row=i, column=5, padx=10)
+
+        saldo_final_total = ttk.Label(contents, text=str(saldo * denom))
+        saldo_final_total.grid(row=i, column=6, padx=10)
+
+        carga.trace_add(
+            "write",
+            lambda n, i, m, variables_extra=(denom, saldo, carga, carga_total, saldo_final_cant, saldo_final_total): editar(n, i, m, variables_extra)
+        )
+
+        i += 1
+    """
+    # totales de monedas
+    ttk.Label(contents, text="Total de monedas").grid(row=i, column=0, padx=10, sticky="w")
+    ttk.Label(contents, text=str(totales[0])).grid(row=i, column=1, padx=10)
+    ttk.Label(contents, text=str(totales[1])).grid(row=i, column=2, padx=10)
+    ttk.Label(contents, text=str(totales[2])).grid(row=i, column=3, padx=10)
+    ttk.Label(contents, text=str(totales[3])).grid(row=i, column=4, padx=10)
+    ttk.Label(contents, text=str(totales[0] - totales[2])).grid(row=i, column=5, padx=10)
+    ttk.Label(contents, text=str(totales[1] - totales[3])).grid(row=i, column=6, padx=10)
+    i += 1
+
+    ttk.Label(contents).grid(row=i, columnspan=6)
+    i += 1
+    """
+
+    """
     for denom, (ent, sal) in cantidad_billetes.items():
         ttk.Label(contents, text=f"Billetes de {denom}").grid(row=i, column=0, padx=10, sticky="w")
 
@@ -406,23 +634,7 @@ def saldo_cajero():
     ttk.Button(botones, text="ok", command=vaciar_o_no).grid(row=1, column=0, padx=10)
     
     ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
-
-        ttk.Label(denominaciones, text=f"Monedas de {denom}").grid(row=i)
-
-        ttk.Label(entradas_cantidad, text=str(ent)).grid(row=i)
-        ttk.Label(entradas_total, text=str(ent * denom)).grid(row=i)
-
-        ttk.Label(salidas_cantidad, text=str(sal)).grid(row=i)
-        ttk.Label(salidas_total, text=str(sal * denom)).grid(row=i)
-
-        ttk.Label(saldo_cantidad, text=str(ent - sal)).grid(row=i)
-        ttk.Label(saldo_total, text=str((ent - sal) * denom)).grid(row=i)
-
-        totales[0] += ent
-        totales[1] += sal
-
-        i += 1
-
+    """
 
 """ despliega información sobre el programa en la ventana """
 def acerca_de():
@@ -433,9 +645,12 @@ def acerca_de():
 
     for i, texto in enumerate(textos):
         label = ttk.Label(frame, text=texto, justify="left", anchor="w")
-        label.grid(sticky=W, column=0, row=i)
+        label.grid(sticky=tk.W, column=0, row=i)
         label.config(font = (FUENTE, 16))
 
+def salir():
+    guardar_datos()
+    ventana.destroy()
 
 ########################################
 # Funciones auxiliares #################
@@ -449,31 +664,64 @@ def clear_frame(f=frame):
 """ crea un texto de error en el frame """
 def error(frame, mensaje, tamaño=14, row=0, col=0):
     ttk.Label(frame, text="[Error] " + mensaje, foreground="red", font=(FUENTE, tamaño), anchor="w") \
-        .grid(column=col, row=row, sticky=W)
+        .grid(column=col, row=row, sticky=tk.W)
 
 def guardar_datos():
     # datos de configuración
     f_config = open("configuración.dat", "w")
-    str_write = f"{cantidad_espacios}\n"
-    str_write += f"{precio_hora}\n"
-    str_write += f"{pago_mínimo}\n"
-    str_write += f"{redondeo}\n"
-    str_write += f"{minutos_máximos}\n"
-    f_config.write()
-    f_config.write()
-    f_config.write()
-    f_config.write()
-    f_con
+
+    f_config.write(f"{cantidad_espacios}\n")
+    f_config.write(f"{precio_hora}\n")
+    f_config.write(f"{pago_mínimo}\n")
+    f_config.write(f"{redondeo}\n")
+    f_config.write(f"{minutos_máximos}\n")
+    f_config.write(f"{monedas}\n")
+    f_config.write(f"{billetes}\n")
+    f_config.write(f"{cantidades_denominaciones}\n")
+
+    f_config.close()
 
     # TODO: seguir
+
+def leer_datos():
+    global cantidad_espacios, precio_hora, pago_mínimo, redondeo, minutos_máximos, monedas, billetes, cantidades_denominaciones
+
+    try:
+        f_config = open("configuración.dat", "r")
+    except:
+        return
+
+    cantidad_espacios = int(f_config.readline()[:-1])
+    precio_hora = float(f_config.readline()[:-1])
+    pago_mínimo = int(f_config.readline()[:-1])
+    redondeo = int(f_config.readline()[:-1])
+    minutos_máximos = int(f_config.readline()[:-1])
+    monedas = eval(f_config.readline()[:-1])
+    billetes = eval(f_config.readline()[:-1])
+    cantidades_denominaciones = eval(f_config.readline()[:-1])
+
+def crear_cantidades_denominaciones():
+    for moneda in monedas:
+        if moneda != 0:
+            # ingresados, egresados
+            cantidades_denominaciones[0][moneda] = [0, 0]
+
+    for billete in billetes:
+        if billete != 0:
+            cantidades_denominaciones[1][billete] = [0, 0]
 
 ########################################
 # Pruebas ##############################
 ########################################
 
-
-
 ########################################
 # Función principal ####################
 ########################################
+ventana.title("Estacionamiento")
+ventana.geometry("950x600")
+ventana.grid_columnconfigure(0, weight=1)
+
+frame.grid(padx=10, pady=10)
+
+leer_datos()
 menú_principal()

@@ -7,6 +7,12 @@ root.title("holi")
 def donothing():
     pass
 
+def leng(self):
+    print(self.get())
+    return len(self) < 20
+
+#root.register(leng)
+
 # File menu
 menubar = Menu(root)
 filemenu = Menu(menubar, tearoff=0)
@@ -29,8 +35,28 @@ menubar.add_command(label="Extra", command=donothing)
 # Main
 frame = ttk.Frame(root, padding=10)
 frame.grid()
-ttk.Label(frame, text="Hello World").grid(column=0, row=0, padx=10)
+frame.register(leng)
+h = ttk.Label(frame, text="Hello World")
+h.grid(column=0, row=0, padx=10)
+
 ttk.Button(frame, text="Quit", command=root.destroy).grid(column=1, row=0)
+
+
+def hacer():
+    for i in range(4):
+        var = StringVar()
+        e = ttk.Entry(frame, textvariable=var)
+
+        def cambio(name, index, mode, var=var):
+            try:
+                int(var.get())
+            except ValueError:
+                h.config(text="kys")
+
+        e.grid()
+        var.trace_add("write", cambio)
+
+ttk.Button(frame, text="hacer", command=hacer).grid(column=2, row=0)
 
 root.config(menu=menubar)
 
