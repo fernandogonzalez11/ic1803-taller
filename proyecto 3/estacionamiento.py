@@ -418,38 +418,6 @@ def cargar_cajero():
     # qué tal si hago otro dict (otro dict!!!!!!!) de tipo {denom: valor_actual}
     # lo actualizo acá y llamo a un generador de los totales con ese dict
     # inicializar label total en 0 y editarlo con .config
-    def editar(name, index, mode, variables_extra):
-        denom, saldo, carga, carga_total, saldo_final_cant, saldo_final_total = variables_extra
-        nonlocal errores_en
-        try:
-            string = carga.get()
-            
-            if not string:
-                if denom in cambios:
-                    del cambios[denom]
-                    carga_total.config(text="0")
-                    saldo_final_cant.config(text="0")
-                    saldo_final_total.config(text="0")
-            else:
-                
-                cambios[denom] = int(carga.get())
-                
-                nuevo_saldo = saldo + cambios[denom]
-                
-                carga_total.config(text=str(cambios[denom] * denom))
-                saldo_final_cant.config(text=str(nuevo_saldo))
-                saldo_final_total.config(text=str(nuevo_saldo * denom))
-
-                if denom in errores_en:
-                    errores_en.remove(denom)
-        except ValueError:
-            errores_en.append(denom)
-
-            if denom in cambios:
-                del cambios[denom]
-                carga_total.config(text="-")
-                saldo_final_cant.config(text="-")
-                saldo_final_total.config(text="-")
     
     """ def editar(name, index, mode, carga, cambios, saldo, carga_total, saldo_final_cant, saldo_final_total):
             print("holi")
@@ -521,7 +489,100 @@ def cargar_cajero():
     for denom, (ent, sal) in cantidad_billetes.items():
         saldos[denom] = ent - sal
 
+    # totales de saldo antes de la carga (cant. y tot.), para monedas y billetes
     totales = [0, 0, 0, 0]
+
+    # labels de totales de carga (cant. y tot), labels de totales de saldo final (cant. y tot), para monedas y billetes
+    totales_editar = [ttk.Label(contents, text="0"), ttk.Label(contents, text="0"), ttk.Label(contents), ttk.Label(contents),
+        ttk.Label(contents, text="0"), ttk.Label(contents, text="0"), ttk.Label(contents), ttk.Label(contents)]
+
+    """ función interna para manejar auto-refresque de los campos """
+    def editar(name, index, mode, variables_extra, es_monedas):
+        denom, carga, carga_total, saldo_final_cant, saldo_final_total = variables_extra
+
+        nonlocal errores_en
+
+        saldo = saldos[denom]
+        try:
+            string = carga.get()
+            
+            if not string:
+                if denom in cambios:
+                    del cambios[denom]
+
+                if denom in errores_en:
+                    errores_en.remove(denom)
+
+                carga_total.config(text="0")
+                saldo_final_cant.config(text="0")
+                saldo_final_total.config(text="0")
+            else:
+                cambio = int(carga.get())
+                if cambio < 0:
+                    raise ValueError
+                
+                cambios[denom] = cambio
+
+                if denom in errores_en:
+                    errores_en.remove(denom)  
+                      
+                nuevo_saldo = saldo + cambios[denom]
+                carga_total.config(text=str(cambios[denom] * denom))
+                saldo_final_cant.config(text=str(nuevo_saldo))
+                saldo_final_total.config(text=str(nuevo_saldo * denom))
+            
+        except ValueError:
+            if denom not in errores_en:
+                errores_en.append(denom)
+
+            if denom in cambios:
+                del cambios[denom]
+                carga_total.config(text="-")
+                saldo_final_cant.config(text="-")
+                saldo_final_total.config(text="-")
+
+        if errores_en:
+            if es_monedas:
+                totales_editar[0].config(text="-")
+                totales_editar[1].config(text="-")
+                totales_editar[2].config(text="-")
+                totales_editar[3].config(text="-")
+            else:
+                totales_editar[4].config(text="-")
+                totales_editar[5].config(text="-")
+                totales_editar[6].config(text="-")
+                totales_editar[7].config(text="-")
+        else:
+            if es_monedas:
+                # obtener suma de los nuevos saldos con los que ya se tienen
+                # cambios se preasume ya tener estructura {int: int}
+                total_nuevas_cant = total_nuevas_tot = 0
+                for denom in cambios:
+                    if denom not in monedas:
+                        continue
+
+                    total_nuevas_cant += cambios[denom]
+                    total_nuevas_tot += cambios[denom] * denom
+                
+                totales_editar[0].config(text=str(total_nuevas_cant))
+                totales_editar[1].config(text=str(total_nuevas_tot))
+                totales_editar[2].config(text=str(total_nuevas_cant + totales[0]))
+                totales_editar[3].config(text=str(total_nuevas_tot + totales[1]))
+            else:
+                total_nuevas_cant = total_nuevas_tot = 0
+                for denom in cambios:
+                    if denom not in billetes:
+                        continue
+
+                    total_nuevas_cant += cambios[denom]
+                    total_nuevas_tot += cambios[denom] * denom
+                
+                totales_editar[4].config(text=str(total_nuevas_cant))
+                totales_editar[5].config(text=str(total_nuevas_tot))
+                totales_editar[6].config(text=str(total_nuevas_cant + totales[2]))
+                totales_editar[7].config(text=str(total_nuevas_cant + totales[3]))
+
+
     for denom in monedas:
         if denom == 0:
             break
@@ -537,7 +598,7 @@ def cargar_cajero():
         carga = tk.StringVar()
         ttk.Entry(contents, textvariable=carga, width=7).grid(row=i, column=3, padx=10)
         
-        carga_total = ttk.Label(contents, text=str(sal * denom))
+        carga_total = ttk.Label(contents, text="0")
         carga_total.grid(row=i, column=4, padx=10)
 
         saldo_final_cant = ttk.Label(contents, text=str(saldo))
@@ -548,13 +609,26 @@ def cargar_cajero():
 
         carga.trace_add(
             "write",
-            lambda n, i, m, variables_extra=(denom, saldo, carga, carga_total, saldo_final_cant, saldo_final_total): editar(n, i, m, variables_extra)
+            lambda n, i, m, variables_extra=(denom, carga, carga_total, saldo_final_cant, saldo_final_total), es_monedas=True: editar(n, i, m, variables_extra, es_monedas)
         )
 
+        totales[0] += saldo
+        totales[1] += saldo * denom
         i += 1
 
-    ttk.Label(contents).grid(row=i)
-    i += 1
+    # desplegar todos los totales con sus valores iniciales, luego se editarán automáticamente
+    ttk.Label(contents, text="Total de monedas").grid(row=i, column=0)
+    ttk.Label(contents, text=str(totales[0])).grid(row=i, column=1)
+    ttk.Label(contents, text=str(totales[1])).grid(row=i, column=2)
+    totales_editar[0].grid(row=i, column=3)
+    totales_editar[1].grid(row=i, column=4)
+    totales_editar[2].config(text=str(totales[0]))
+    totales_editar[2].grid(row=i, column=5)
+    totales_editar[3].config(text=str(totales[1]))
+    totales_editar[3].grid(row=i, column=6)
+
+    ttk.Label(contents).grid(row=i + 1)
+    i += 2
 
     for denom in billetes:
         if denom == 0:
@@ -582,10 +656,22 @@ def cargar_cajero():
 
         carga.trace_add(
             "write",
-            lambda n, i, m, variables_extra=(denom, saldo, carga, carga_total, saldo_final_cant, saldo_final_total): editar(n, i, m, variables_extra)
+            lambda n, i, m, variables_extra=(denom, carga, carga_total, saldo_final_cant, saldo_final_total), es_monedas=False: editar(n, i, m, variables_extra, es_monedas)
         )
 
         i += 1
+
+    # desplegar todos los totales con sus valores iniciales, luego se editarán automáticamente
+    ttk.Label(contents, text="Total de billetes").grid(row=i, column=0)
+    ttk.Label(contents, text=str(totales[2])).grid(row=i, column=1)
+    ttk.Label(contents, text=str(totales[3])).grid(row=i, column=2)
+    totales_editar[4].grid(row=i, column=3)
+    totales_editar[5].grid(row=i, column=4)
+    totales_editar[6].config(text=str(totales[2]))
+    totales_editar[6].grid(row=i, column=5)
+    totales_editar[7].config(text=str(totales[3]))
+    totales_editar[7].grid(row=i, column=6)
+
     """
     # totales de monedas
     ttk.Label(contents, text="Total de monedas").grid(row=i, column=0, padx=10, sticky="w")
