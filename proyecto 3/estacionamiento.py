@@ -711,21 +711,25 @@ def entrada_vehículo():
 
         return
 
-    placa = tk.StringVar()
     # la fecha y hora de hoy
     hora_entrada = datetime.datetime.today()
     índice_nuevo_vehículo = -1
+    campos_ocupados = []
+    placa = tk.StringVar()
+    placa_entry = ttk.Entry()
+    
     
     """ función interna para crear todo* (excepto botones) """
     def crear_campos():
-        nonlocal placa, hora_entrada, índice_nuevo_vehículo
+        nonlocal placa, placa_entry, hora_entrada, índice_nuevo_vehículo, campos_ocupados
         clear_frame(contents)
 
         # calcular el espacio en el que va a estar el nuevo vehículo
         índice_nuevo_vehículo = búsqueda_espaciada(parqueo)
+        campos_ocupados = [campo for campo in parqueo if campo]
 
         # calcular la cantidad de espacios disponibles
-        espacios_disponibles = len(parqueo) - len([campo for campo in parqueo if campo])
+        espacios_disponibles = len(parqueo) - len(campos_ocupados)
 
         # desplegar datos
         ttk.Label(contents, text="Espacios disponibles").grid(row=0, column=0, pady=10, sticky="w")
@@ -734,7 +738,7 @@ def entrada_vehículo():
         if índice_nuevo_vehículo == -1:
             error(contents, "NO HAY ESPACIO", row=0, col=1)
 
-            ttk.Button(error_frame, text="ok :(", command=clear_frame) \
+            ttk.Button(error_frame, text="ok :(", command=crear_campos) \
                 .grid(column=0, row=1, sticky="w", pady=10, padx=10)
 
             return
@@ -762,9 +766,21 @@ def entrada_vehículo():
 
     """ función interna para colocar la información del nuevo vehículo en el campo respectivo """
     def parquear():
-        nonlocal placa, hora_entrada, índice_nuevo_vehículo
+        placa_str = placa.get()
 
-        parqueo[índice_nuevo_vehículo] = [placa.get(), hora_entrada]
+        if not placa_str:
+            clear_frame(error_frame)
+            error(error_frame, "El campo de placa debe estar lleno")
+            return
+
+        for campo in campos_ocupados:
+            if campo[0] == placa_str:
+                clear_frame(error_frame)
+                error(error_frame, f"La placa {placa_str} ya está en el parqueo")
+                placa_entry.delete(0, "end")
+                return
+
+        parqueo[índice_nuevo_vehículo] = [placa_str, hora_entrada]
 
         # reinicia el proceso recreando los campos
         crear_campos()
