@@ -19,10 +19,13 @@ from tkinter import font
 import ttkthemes
 
 # facilita registro, validación y cálculos de tiempos
-import time
+import datetime
 
 # usado en validaciones
 import re
+
+# usado para leer y escribir archivos en binario
+import pickle
 
 ########################################
 # Variables principales ################
@@ -49,6 +52,10 @@ frame = ttk.Frame(ventana)
 # fuente global del programa
 FUENTE = font.nametofont("TkDefaultFont").name
 
+# formato de fecha y hora utilizado para desplegar objetos datetime
+# hh:mm dd/mm/aaaa
+FORMATO_HORA = "%H:%M %d/%m/%Y"
+
 # variables de configuración
 cantidad_espacios = precio_hora = pago_mínimo = redondeo = minutos_máximos = 0
 monedas = []
@@ -74,7 +81,7 @@ def menú_principal():
     menubar_dinero.add_command(label="Cargar cajero", command=cargar_cajero)
     menubar.add_cascade(label="Dinero del cajero", menu=menubar_dinero)
 
-    menubar.add_command(label="Entrada del vehículo")
+    menubar.add_command(label="Entrada del vehículo", command=entrada_vehículo)
     menubar.add_command(label="Cajero")
     menubar.add_command(label="Salida del vehículo")
     menubar.add_command(label="Reporte de ingresos de dinero")
@@ -83,6 +90,9 @@ def menú_principal():
     menubar.add_command(label="Salir", command=salir)
 
     ventana.config(menu=menubar)
+
+    # crear un evento de guardar datos al cerrar la ventana con X
+    ventana.wm_protocol("WM_DELETE_WINDOW", guardar_datos)
 
     # una vez configurado todo el aspecto gráfico, mostrar la ventana
     ventana.mainloop()
@@ -242,7 +252,7 @@ def configuración():
     
     # crear el encabezado
     título = ttk.Label(frame, text="Estacionamiento - configuración", justify="left")
-    título.grid(column=0, row=0, sticky=tk.W, padx=5, pady=5)
+    título.grid(column=0, row=0, sticky="w", padx=5, pady=5)
     título.config(font=(FUENTE, 16))
 
     textos = [
@@ -265,18 +275,28 @@ def configuración():
 
     # crear tres frames: texto y entradas, botones, errores
     entries = ttk.Frame(frame)
-    entries.grid(column=0, row=1, sticky=tk.W)
+    entries.grid(column=0, row=1, sticky="w")
 
     botones = ttk.Frame(frame)
-    botones.grid(column=0, row=2, sticky=tk.W)
+    botones.grid(column=0, row=2, sticky="w")
 
     error_frame = ttk.Frame(frame)
-    error_frame.grid(column=0, row=3, sticky=tk.W, padx=10, pady=10)
+    error_frame.grid(column=0, row=3, sticky="w", padx=10, pady=10)
+
+    # validar que el parqueo esté vacío
+    for campo in parqueo:
+        if campo:
+            error(error_frame, "El parqueo debe estar vacío para configurarlo")
+
+            ttk.Button(error_frame, text="ok", command=clear_frame) \
+                .grid(column=0, row=1, sticky="w", pady=10, padx=10)
+
+            return
 
     # poblar los textos y entradas
     for i, texto in enumerate(textos):
         label = ttk.Label(entries, text=texto)
-        label.grid(sticky=tk.W, column=0, row=i + 1, padx=10, pady=3)
+        label.grid(sticky="w", column=0, row=i + 1, padx=10, pady=3)
         label.config(font = (FUENTE, 12))
 
         if i == 5 or i == 9:
@@ -288,9 +308,9 @@ def configuración():
 
     # añadir los botones
     ttk.Button(botones, text="ok", command=establecer) \
-        .grid(column=0, row=0, sticky=tk.W, pady=10, padx=10)
+        .grid(column=0, row=0, sticky="w", pady=10, padx=10)
     ttk.Button(botones, text="cancelar", command=clear_frame) \
-        .grid(column=1, row=0, sticky=tk.W, pady=10, padx=10)
+        .grid(column=1, row=0, sticky="w", pady=10, padx=10)
 
 """ despliega saldo del cajero en sus diferentes denominaciones """
 def saldo_cajero():
@@ -404,7 +424,6 @@ def saldo_cajero():
 
     ttk.Checkbutton(botones, text="Vaciar cajero", variable=vaciar).grid(row=0, pady=10)
     ttk.Button(botones, text="ok", command=vaciar_o_no).grid(row=1, column=0, padx=10)
-    
     ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
 
 """ despliega saldo del cajero en sus diferentes denominaciones """
@@ -413,36 +432,6 @@ def cargar_cajero():
 
     # variable que detecta errores al validar entradas de carga
     errores_en = []
-
-    # TODO: total de monedas/billetes
-    # qué tal si hago otro dict (otro dict!!!!!!!) de tipo {denom: valor_actual}
-    # lo actualizo acá y llamo a un generador de los totales con ese dict
-    # inicializar label total en 0 y editarlo con .config
-    
-    """ def editar(name, index, mode, carga, cambios, saldo, carga_total, saldo_final_cant, saldo_final_total):
-            print("holi")
-            nonlocal errores_en
-            try:
-                string = carga.get()
-
-                if not string:
-                    if denom in cambios:
-                        del cambios[denom]
-                else:
-                    cambios[denom] = int(carga.get())
-                    nuevo_saldo = saldo[denom] + cambios[denom]
-
-                    carga_total.config(text=str(cambios[denom] * denom))
-                    saldo_final_cant.config(text=str(nuevo_saldo))
-                    saldo_final_total.config(text=str(nuevo_saldo * denom))
-
-                    if denom in errores_en:
-                        errores_en.remove(denom)
-            except:
-                errores_en.append(denom)
-
-                if denom in cambios:
-                    del cambios[denom] """
 
     clear_frame()
     
@@ -460,19 +449,22 @@ def cargar_cajero():
     ttk.Label(contents, text="Carga").grid(row=0, column=3, columnspan=2, padx=10)
     ttk.Label(contents, text="Saldo").grid(row=0, column=5, columnspan=2, padx=10)
 
-    ttk.Label(contents, text="Cantidad").grid(row=1, column=1, padx=10, sticky="w")
+    ttk.Label(contents, text="Cantidad").grid(row=1, column=1, padx=10)
     ttk.Label(contents, text="Cantidad").grid(row=1, column=3, padx=10, sticky="w")
     ttk.Label(contents, text="Cantidad").grid(row=1, column=5, padx=10, sticky="w")
 
-    ttk.Label(contents, text="Total").grid(row=1, column=2, padx=10, sticky="e")
+    ttk.Label(contents, text="Total").grid(row=1, column=2, padx=10)
     ttk.Label(contents, text="Total").grid(row=1, column=4, padx=10, sticky="e")
     ttk.Label(contents, text="Total").grid(row=1, column=6, padx=10, sticky="e")
 
     ttk.Label(contents).grid(row=2, columnspan=6)
 
-    # botones de vaciar, ok, cancelar
+    # botones de ok, cancelar
     botones = ttk.Frame(frame)
     botones.grid(row=2, column=0, sticky="w")
+
+    error_frame = ttk.Frame(frame)
+    error_frame.grid(row=3, column=0, sticky="w", padx=10, pady=10)
 
     i = 3
     cantidad_monedas, cantidad_billetes = cantidades_denominaciones
@@ -481,7 +473,6 @@ def cargar_cajero():
     # también se creará un diccionario con cambios de la carga 
     saldos = {}
     cambios = {}
-    labels_asociados = {}
 
     for denom, (ent, sal) in cantidad_monedas.items():
         saldos[denom] = ent - sal
@@ -514,8 +505,8 @@ def cargar_cajero():
                     errores_en.remove(denom)
 
                 carga_total.config(text="0")
-                saldo_final_cant.config(text="0")
-                saldo_final_total.config(text="0")
+                saldo_final_cant.config(text=saldos[denom])
+                saldo_final_total.config(text=saldos[denom] * denom)
             else:
                 cambio = int(carga.get())
                 if cambio < 0:
@@ -582,7 +573,21 @@ def cargar_cajero():
                 totales_editar[6].config(text=str(total_nuevas_cant + totales[2]))
                 totales_editar[7].config(text=str(total_nuevas_cant + totales[3]))
 
+    def establecer():
+        if errores_en:
+            error(error_frame, "Las cargas deben ser enteros positivos o estar vacías")
+        else:
+            for denom in cambios:
+                if denom in monedas:
+                    tipo = 0
+                else:
+                    tipo = 1
 
+                cantidades_denominaciones[tipo][denom][0] += cambios[denom]
+            
+            clear_frame()
+
+    # desplegar todos los datos y cajas de monedas
     for denom in monedas:
         if denom == 0:
             break
@@ -591,19 +596,21 @@ def cargar_cajero():
 
         ttk.Label(contents, text=f"Monedas de {denom}").grid(row=i, column=0, padx=10, sticky="w")
 
+        # saldo actual, cantidad y total
         ttk.Label(contents, text=str(saldo)).grid(row=i, column=1, padx=10)
         ttk.Label(contents, text=str(saldo * denom)).grid(row=i, column=2, padx=10)
 
-        # ttk.Label(contents, text=str(sal)).grid(row=i, column=3, padx=10)
+        # entrada de carga, cantidad
         carga = tk.StringVar()
         ttk.Entry(contents, textvariable=carga, width=7).grid(row=i, column=3, padx=10)
-        
+        # y total
         carga_total = ttk.Label(contents, text="0")
         carga_total.grid(row=i, column=4, padx=10)
 
+        # saldo final, cantidad
         saldo_final_cant = ttk.Label(contents, text=str(saldo))
         saldo_final_cant.grid(row=i, column=5, padx=10)
-
+        # y total
         saldo_final_total = ttk.Label(contents, text=str(saldo * denom))
         saldo_final_total.grid(row=i, column=6, padx=10)
 
@@ -616,8 +623,9 @@ def cargar_cajero():
         totales[1] += saldo * denom
         i += 1
 
+    i += 1
     # desplegar todos los totales con sus valores iniciales, luego se editarán automáticamente
-    ttk.Label(contents, text="Total de monedas").grid(row=i, column=0)
+    ttk.Label(contents, text="Total de monedas").grid(row=i, column=0, padx=10, sticky="w")
     ttk.Label(contents, text=str(totales[0])).grid(row=i, column=1)
     ttk.Label(contents, text=str(totales[1])).grid(row=i, column=2)
     totales_editar[0].grid(row=i, column=3)
@@ -662,7 +670,7 @@ def cargar_cajero():
         i += 1
 
     # desplegar todos los totales con sus valores iniciales, luego se editarán automáticamente
-    ttk.Label(contents, text="Total de billetes").grid(row=i, column=0)
+    ttk.Label(contents, text="Total de billetes").grid(row=i, column=0, padx=10, sticky="w")
     ttk.Label(contents, text=str(totales[2])).grid(row=i, column=1)
     ttk.Label(contents, text=str(totales[3])).grid(row=i, column=2)
     totales_editar[4].grid(row=i, column=3)
@@ -672,55 +680,98 @@ def cargar_cajero():
     totales_editar[7].config(text=str(totales[3]))
     totales_editar[7].grid(row=i, column=6)
 
-    """
-    # totales de monedas
-    ttk.Label(contents, text="Total de monedas").grid(row=i, column=0, padx=10, sticky="w")
-    ttk.Label(contents, text=str(totales[0])).grid(row=i, column=1, padx=10)
-    ttk.Label(contents, text=str(totales[1])).grid(row=i, column=2, padx=10)
-    ttk.Label(contents, text=str(totales[2])).grid(row=i, column=3, padx=10)
-    ttk.Label(contents, text=str(totales[3])).grid(row=i, column=4, padx=10)
-    ttk.Label(contents, text=str(totales[0] - totales[2])).grid(row=i, column=5, padx=10)
-    ttk.Label(contents, text=str(totales[1] - totales[3])).grid(row=i, column=6, padx=10)
-    i += 1
-
-    ttk.Label(contents).grid(row=i, columnspan=6)
-    i += 1
-    """
-
-    """
-    for denom, (ent, sal) in cantidad_billetes.items():
-        ttk.Label(contents, text=f"Billetes de {denom}").grid(row=i, column=0, padx=10, sticky="w")
-
-        ttk.Label(contents, text=str(ent)).grid(row=i, column=1, padx=10)
-        ttk.Label(contents, text=str(ent * denom)).grid(row=i, column=2, padx=10)
-
-        ttk.Label(contents, text=str(sal)).grid(row=i, column=3, padx=10)
-        ttk.Label(contents, text=str(sal * denom)).grid(row=i, column=4, padx=10)
-
-        ttk.Label(contents, text=str(ent - sal)).grid(row=i, column=5, padx=10)
-        ttk.Label(contents, text=str((ent - sal) * denom)).grid(row=i, column=6, padx=10)
-
-        totales[4] += ent
-        totales[5] += ent * denom
-        totales[6] += sal
-        totales[7] += sal * denom
-
-        i += 1
-
-    # totales de billetes
-    ttk.Label(contents, text="Total").grid(row=i, column=0, padx=10, sticky="w")
-    ttk.Label(contents, text=str(totales[4])).grid(row=i, column=1, padx=10)
-    ttk.Label(contents, text=str(totales[5])).grid(row=i, column=2, padx=10)
-    ttk.Label(contents, text=str(totales[6])).grid(row=i, column=3, padx=10)
-    ttk.Label(contents, text=str(totales[7])).grid(row=i, column=4, padx=10)
-    ttk.Label(contents, text=str(totales[4] - totales[6])).grid(row=i, column=5, padx=10)
-    ttk.Label(contents, text=str(totales[5] - totales[7])).grid(row=i, column=6, padx=10)
-
-    ttk.Checkbutton(botones, text="Vaciar cajero", variable=vaciar).grid(row=0, pady=10)
-    ttk.Button(botones, text="ok", command=vaciar_o_no).grid(row=1, column=0, padx=10)
-    
+    ttk.Button(botones, text="ok", command=establecer).grid(row=1, column=0, padx=10)
     ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
-    """
+
+""" registra la entrada de un vehículo, si el parqueo tiene campos disponibles """
+def entrada_vehículo():
+    clear_frame()
+
+    # crear el encabezado
+    título = ttk.Label(frame, text="Estacionamiento - entrada de vehículo")
+    título.grid(pady=10, row=0, column=0, sticky="w")
+    título.config(font=(FUENTE, 16))
+
+    # frames principales
+    contents = ttk.Frame(frame)
+    contents.grid(pady=10, row=1, column=0, sticky="w")
+
+    botones = ttk.Frame(frame)
+    botones.grid(pady=10, row=2, column=0, sticky="w")
+
+    error_frame = ttk.Frame(frame)
+    error_frame.grid(pady=10, row=3, column=0, sticky="w")
+
+    # validar que el parqueo haya sido configurado (es decir, tenga elementos, aunque sean listas vacías)
+    if not parqueo:
+        error(error_frame, "El parqueo debe configurarse para acceder a esta funcionalidad")
+
+        ttk.Button(error_frame, text="ok", command=clear_frame) \
+            .grid(column=0, row=1, sticky="w", pady=10, padx=10)
+
+        return
+
+    placa = tk.StringVar()
+    # la fecha y hora de hoy
+    hora_entrada = datetime.datetime.today()
+    índice_nuevo_vehículo = -1
+    
+    """ función interna para crear todo* (excepto botones) """
+    def crear_campos():
+        nonlocal placa, hora_entrada, índice_nuevo_vehículo
+        clear_frame(contents)
+
+        # calcular el espacio en el que va a estar el nuevo vehículo
+        índice_nuevo_vehículo = búsqueda_espaciada(parqueo)
+
+        # calcular la cantidad de espacios disponibles
+        espacios_disponibles = len(parqueo) - len([campo for campo in parqueo if campo])
+
+        # desplegar datos
+        ttk.Label(contents, text="Espacios disponibles").grid(row=0, column=0, pady=10, sticky="w")
+
+        # validar que hayan espacios
+        if índice_nuevo_vehículo == -1:
+            error(contents, "NO HAY ESPACIO", row=0, col=1)
+
+            ttk.Button(error_frame, text="ok :(", command=clear_frame) \
+                .grid(column=0, row=1, sticky="w", pady=10, padx=10)
+
+            return
+
+        # de otra manera, mostrar los demás campos
+        ttk.Label(contents, text=str(espacios_disponibles)).grid(row=0, column=1, pady=10, sticky="e")
+
+        ttk.Label(contents, text="Su placa").grid(row=1, column=0, sticky="w")
+
+        ttk.Entry(contents, textvariable=placa, width=10, justify="right").grid(row=1, column=1, pady=10, sticky="e")
+
+        ttk.Label(contents, text="Campo asignado").grid(row=2, column=0, pady=10, sticky="w")
+        ttk.Label(contents, text=str(índice_nuevo_vehículo), font=(FUENTE, 16)).grid(row=2, column=1, pady=10, sticky="e")
+
+        ttk.Label(contents, text="Hora de entrada").grid(row=3, column=0, pady=10, sticky="w")
+        ttk.Label(contents, text=hora_entrada.strftime(FORMATO_HORA)).grid(row=3, column=1, pady=10, sticky="e")
+
+        ttk.Label(contents, text="Precio por hora").grid(row=4, column=0, pady=10, sticky="w")
+        ttk.Label(contents, text=str(precio_hora)).grid(row=4, column=1, pady=10, sticky="e")
+
+        ttk.Label(contents, text="Pago mínimo").grid(row=5, column=0, pady=10, sticky="w")
+        ttk.Label(contents, text=str(pago_mínimo)).grid(row=5, column=1, pady=10, sticky="e")        
+
+    """ función interna para colocar la información del nuevo vehículo en el campo respectivo """
+    def parquear():
+        nonlocal placa, hora_entrada, índice_nuevo_vehículo
+
+        parqueo[índice_nuevo_vehículo] = [placa.get(), hora_entrada]
+
+        # reinicia el proceso recreando los campos
+        crear_campos()
+
+    # crear botones de ok y cancelar
+    crear_campos()
+    ttk.Button(botones, text="ok", command=parquear).grid(row=0, column=0, sticky="w")
+    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=0, column=1, padx=10, sticky="e")
+
 
 """ despliega información sobre el programa en la ventana """
 def acerca_de():
@@ -731,7 +782,7 @@ def acerca_de():
 
     for i, texto in enumerate(textos):
         label = ttk.Label(frame, text=texto, justify="left", anchor="w")
-        label.grid(sticky=tk.W, column=0, row=i)
+        label.grid(sticky="w", column=0, row=i)
         label.config(font = (FUENTE, 16))
 
 def salir():
@@ -742,16 +793,24 @@ def salir():
 # Funciones auxiliares #################
 ########################################
 
-""" borra todos los elementos de un frame existente """
+"""
+borra todos los elementos de un frame existente
+entrada: Frame (el frame cuyos elementos se borrarán)
+"""
 def clear_frame(f=frame):
     for widget in f.winfo_children():
         widget.destroy()
 
-""" crea un texto de error en el frame """
+"""
+crea un texto de error en el frame
+entradas: Frame (frame donde se coloca el error), str (mensaje), int (tamaño de fuente),
+    int (fila donde se coloca el error), int (columna del error)
+"""
 def error(frame, mensaje, tamaño=14, row=0, col=0):
     ttk.Label(frame, text="[Error] " + mensaje, foreground="red", font=(FUENTE, tamaño), anchor="w") \
-        .grid(column=col, row=row, sticky=tk.W)
+        .grid(column=col, row=row, sticky="w")
 
+""" guardar todos los datos en sus archivos respectivos al salir del programa """
 def guardar_datos():
     # datos de configuración
     f_config = open("configuración.dat", "w")
@@ -767,25 +826,47 @@ def guardar_datos():
 
     f_config.close()
 
+    f_parqueo = open("parqueo.dat", "wb")
+    pickle.dump(parqueo, f_parqueo)
+    f_parqueo.close()
+
+    f_historial = open("historial_parqueo.dat", "wb")
+    pickle.dump(historial_parqueo, f_historial)
+    f_historial.close()
+
+
     # TODO: seguir
 
+""" el tándem de guardar datos, lee los archivos guardados cuando inicia el programa """
 def leer_datos():
-    global cantidad_espacios, precio_hora, pago_mínimo, redondeo, minutos_máximos, monedas, billetes, cantidades_denominaciones
+    global cantidad_espacios, precio_hora, pago_mínimo, redondeo, minutos_máximos, \
+        monedas, billetes, cantidades_denominaciones, parqueo, historial_parqueo
 
     try:
         f_config = open("configuración.dat", "r")
+
+        cantidad_espacios = int(f_config.readline()[:-1])
+        precio_hora = float(f_config.readline()[:-1])
+        pago_mínimo = int(f_config.readline()[:-1])
+        redondeo = int(f_config.readline()[:-1])
+        minutos_máximos = int(f_config.readline()[:-1])
+        monedas = eval(f_config.readline()[:-1])
+        billetes = eval(f_config.readline()[:-1])
+        cantidades_denominaciones = eval(f_config.readline()[:-1])
+        f_config.close()
+
+        f_parqueo = open("parqueo.dat", "rb")
+        parqueo = pickle.load(f_parqueo)
+        f_parqueo.close()
+
+        f_historial = open("historial_parqueo.dat", "rb")
+        historial_parqueo = pickle.load(f_historial)
+        f_historial.close()
     except:
         return
 
-    cantidad_espacios = int(f_config.readline()[:-1])
-    precio_hora = float(f_config.readline()[:-1])
-    pago_mínimo = int(f_config.readline()[:-1])
-    redondeo = int(f_config.readline()[:-1])
-    minutos_máximos = int(f_config.readline()[:-1])
-    monedas = eval(f_config.readline()[:-1])
-    billetes = eval(f_config.readline()[:-1])
-    cantidades_denominaciones = eval(f_config.readline()[:-1])
 
+""" crea el diccionario de denominaciones asociadas a sus cantidades de entrada y salida """
 def crear_cantidades_denominaciones():
     for moneda in monedas:
         if moneda != 0:
@@ -795,6 +876,44 @@ def crear_cantidades_denominaciones():
     for billete in billetes:
         if billete != 0:
             cantidades_denominaciones[1][billete] = [0, 0]
+
+"""
+retorna el índice donde se debe colocar un nuevo elemento (o -1 si la lista está llena),
+de tal manera que esta sea la más espaciada posible
+se asume que la lista está compuesta de sublistas (vacías o con elementos)
+
+entrada: list (lista para encontrar el índice)
+salida: int (índice con mayor espaciamiento)
+"""
+def búsqueda_espaciada(lista: list) -> int:
+    # encontrar los campos llenos
+    i_campos_llenos = []
+    for i, campo in enumerate(lista):
+        if campo:
+            i_campos_llenos.append(i)
+
+    if len(i_campos_llenos) == len(lista):
+        return -1
+
+    # si el inicio o el final no están llenos, escoger esos
+    if not i_campos_llenos or i_campos_llenos[0] != 0:
+        return 0
+    
+    if i_campos_llenos[-1] != len(lista) - 1:
+        return len(lista) - 1
+
+    # si no, buscar la diferencia más grande, y calcular el medio en ese espacio
+    max_diferencia = -1
+    nuevo_campo = -1
+    
+    for j in range(1, len(i_campos_llenos)):
+        dif_actual = i_campos_llenos[j] - i_campos_llenos[j - 1]
+
+        if dif_actual > max_diferencia:
+            max_diferencia = dif_actual
+            nuevo_campo = (i_campos_llenos[j] - i_campos_llenos[j - 1]) // 2 + i_campos_llenos[j - 1]
+
+    return nuevo_campo
 
 ########################################
 # Pruebas ##############################
