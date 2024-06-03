@@ -744,7 +744,9 @@ def entrada_vehículo():
 
         ttk.Label(contents, text="Su placa").grid(row=1, column=0, sticky="w")
 
-        ttk.Entry(contents, textvariable=placa, width=10, justify="right").grid(row=1, column=1, pady=10, sticky="e")
+        placa_entry = ttk.Entry(contents, textvariable=placa, width=10, justify="right")
+        placa_entry.delete(0, "end")
+        placa_entry.grid(row=1, column=1, pady=10, sticky="e")
 
         ttk.Label(contents, text="Campo asignado").grid(row=2, column=0, pady=10, sticky="w")
         ttk.Label(contents, text=str(índice_nuevo_vehículo), font=(FUENTE, 16)).grid(row=2, column=1, pady=10, sticky="e")
@@ -770,7 +772,7 @@ def entrada_vehículo():
     # crear botones de ok y cancelar
     crear_campos()
     ttk.Button(botones, text="ok", command=parquear).grid(row=0, column=0, sticky="w")
-    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=0, column=1, padx=10, sticky="e")
+    ttk.Button(botones, text="cancelar", command=crear_campos).grid(row=0, column=1, padx=10, sticky="e")
 
 
 """ despliega información sobre el programa en la ventana """
