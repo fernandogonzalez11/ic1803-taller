@@ -16,7 +16,6 @@ Grupo 4
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font
-import ttkthemes
 
 # facilita registro, validación y cálculos de tiempos
 import datetime
@@ -82,7 +81,7 @@ def menú_principal():
     menubar.add_cascade(label="Dinero del cajero", menu=menubar_dinero)
 
     menubar.add_command(label="Entrada del vehículo", command=entrada_vehículo)
-    menubar.add_command(label="Cajero")
+    menubar.add_command(label="Cajero", command=cajero)
     menubar.add_command(label="Salida del vehículo")
     menubar.add_command(label="Reporte de ingresos de dinero")
     menubar.add_command(label="Ayuda")
@@ -173,9 +172,13 @@ def configuración():
             hay_errores = True
         
         hay_ceros = False
+        primer_cero = len(monedas_local)
+
         for i, moneda in enumerate(monedas_local):
             if moneda == 0:
-                hay_ceros = True
+                if not hay_ceros:
+                    hay_ceros = True
+                    primer_cero = i
             else:
                 # si hay ceros y la moneda no es 0, está mal
                 if hay_ceros:
@@ -197,6 +200,8 @@ def configuración():
                             hay_errores = True
                             break
 
+        monedas_local = monedas_local[:primer_cero]
+
         billetes_local = []
 
         try:
@@ -207,9 +212,13 @@ def configuración():
             hay_errores = True
 
         hay_ceros = False
+        primer_cero = len(billetes_local)
+        
         for i, billete in enumerate(billetes_local):
             if billete == 0:
-                hay_ceros = True
+                if not hay_ceros:
+                    hay_ceros = True
+                    primer_cero = i
             else:
                 # si hay ceros y la moneda no es 0, está mal
                 if hay_ceros:
@@ -230,7 +239,14 @@ def configuración():
                             row += 1
                             hay_errores = True
                             break
-            
+        
+        billetes_local = billetes_local[:primer_cero]
+
+        if not monto_posible(datos[1], monedas_local, billetes_local) or not monto_posible(datos[2], monedas_local, billetes_local):
+            error(error_frame, f"El pago mínimo o por hora no se puede formar con estas denominaciones", row=row)
+            row += 1
+            hay_errores = True
+
         if not hay_errores:
             cantidad_espacios = datos[0]
             precio_hora = datos[1]
@@ -246,6 +262,8 @@ def configuración():
             crear_cantidades_denominaciones()
 
             clear_frame()
+    
+    # ----------- #
 
     # función principal de configuración: empezar por borrar el desplegado actual
     clear_frame()
@@ -723,6 +741,7 @@ def entrada_vehículo():
     def crear_campos():
         nonlocal placa, placa_entry, hora_entrada, índice_nuevo_vehículo, campos_ocupados
         clear_frame(contents)
+        clear_frame(error_frame)
 
         # calcular el espacio en el que va a estar el nuevo vehículo
         índice_nuevo_vehículo = búsqueda_espaciada(parqueo)
@@ -789,6 +808,113 @@ def entrada_vehículo():
     crear_campos()
     ttk.Button(botones, text="ok", command=parquear).grid(row=0, column=0, sticky="w")
     ttk.Button(botones, text="cancelar", command=crear_campos).grid(row=0, column=1, padx=10, sticky="e")
+
+def cajero():
+    clear_frame()
+
+    hora_salida = datetime.datetime.today()
+
+    # crear encabezado
+    headings = ttk.Frame(frame)
+    headings.grid(row=0)
+    ttk.Label(headings, text="Cajero", font=(FUENTE, 20, "bold")).grid(row=0, column=0)
+    ttk.Label(headings, text=f"{precio_hora:.2f} por hora").grid(row=0, column=1, padx=10)
+
+    paso1 = ttk.Frame(frame)
+    paso1.grid(row=1, column=0, sticky="w", pady=20)
+
+    paso2 = ttk.Frame(frame)
+    paso2.grid(row=2, column=0, sticky="w", pady=20)
+
+    paso3 = ttk.Frame(frame)
+    paso3.grid(row=3, column=0, sticky="w", pady=20)
+
+    error_frame = ttk.Frame(frame)
+    error_frame.grid(row=5, column=0, sticky="w", pady=20)
+
+    # --- paso 1 --- #
+    ttk.Label(paso1, text="Paso 1: su placa").grid(row=0, column=0, pady=20)
+
+    placa_str = tk.StringVar()
+    placa = ttk.Entry(paso1, width=10, textvariable=placa_str)
+    placa.grid(row=0, column=1, padx=20, sticky="w")
+    # placa.bind("<FocusOut>", pasar_al_paso2)
+
+    """ def pasar_al_paso2():
+        placa_str_str = placa_str.get()
+
+        existe_placa = False
+        for campo in parqueo:
+            if campo and campo[0] == placa_str_str:
+                existe_placa = True
+                break
+                
+        if not existe_placa:
+            error(error_frame, f"El vehículo con placa {placa_str_str} no está en el parqueo")
+        else:
+            pass """
+
+    ttk.Label(paso1, text="Hora de entrada").grid(row=1, column=0, sticky="w")
+    ttk.Label(paso1, text="a:b").grid(row=1, column=1, padx=20, sticky="w") # TODO: cambiar
+    ttk.Label(paso1, text="Hora de salida").grid(row=2, column=0, sticky="w")
+    ttk.Label(paso1, text=hora_salida.strftime(FORMATO_HORA)).grid(row=2, column=1, padx=20, sticky="w")
+    ttk.Label(paso1, text="Tiempo cobrado").grid(row=3, column=0, sticky="w")
+    ttk.Label(paso1, text="a:a").grid(row=3, column=1, padx=20, sticky="w")
+
+    ttk.Label(paso1, text="A pagar").grid(row=0, column=2, padx=30)
+    a_pagar = tk.Canvas(paso1, width=100, height=60, background="#DC143C")
+    a_pagar.grid(row=1, column=2, rowspan=2, padx=30, pady=10)
+    a_pagar.create_text(50, 30, text="xxxxxx", anchor="center", font=(FUENTE, 16))
+    ttk.Label(paso1, text="Pago").grid(row=1, column=3, padx=10, sticky="w")
+
+    pago = tk.Canvas(paso1, width=100, height=30, background="#2E8B57")
+    pago.grid(row=1, column=4)
+    pago.create_text(50, 15, text="xxxxxx", anchor="center", font=(FUENTE, 16))
+
+    #ttk.Label(paso1, text="xxxxxx", font=(FUENTE, 14)).grid(row=1, column=4)
+    ttk.Label(paso1, text="Cambio").grid(row=2, column=3, padx=10, sticky="w")
+    cambio = tk.Canvas(paso1, width=100, height=30, background="#2E8B57")
+    cambio.grid(row=2, column=4)
+    cambio.create_text(50, 15, text="xxxxxx", anchor="center", font=(FUENTE, 16))
+    #ttk.Label(paso1, text="xxxxxx", font=(FUENTE, 14)).grid(row=2, column=4)
+
+    # --- paso 2 --- #
+    ttk.Label(paso2, text="Paso 2: su pago en").grid(row=0, column=0)
+    ttk.Label(paso2, text="Monedas").grid(row=0, column=1, padx=20)
+    ttk.Label(paso2, text="Billetes").grid(row=0, column=2, padx=20)
+    ttk.Label(paso2, text="Tarjeta de crédito").grid(row=0, column=3, padx=20)
+
+    for i, m in enumerate(monedas):
+        ttk.Button(paso2, text=str(m), width=3).grid(row=i + 1, column=1, padx=20)
+        # TODO: bind
+
+    for i, b in enumerate(billetes):
+        ttk.Button(paso2, text=str(b)).grid(row=i + 1, column=2, padx=20)
+        # TODO: bind
+
+    tarjeta = tk.StringVar()
+    ttk.Entry(paso2, textvariable=tarjeta).grid(row=1, column=3, padx=20)
+
+    # --- paso 3 --- #
+    vueltos = [[0] * len(monedas), [0] * len(billetes)]
+    ttk.Label(paso3, text="Paso 3: su cambio en").grid(row=0, column=0)
+    ttk.Label(paso3, text="Monedas").grid(row=0, column=1, padx=20, sticky="w")
+    ttk.Label(paso3, text="Billetes").grid(row=0, column=2, padx=20, sticky="w")
+
+    for i, (moneda, vuelto) in enumerate(zip(monedas, vueltos[0])):
+        ttk.Label(paso3, text=f"{vuelto} de {moneda}").grid(row=i + 1, column=1, padx=20, sticky="w")
+    
+    for i, (billete, vuelto) in enumerate(zip(billetes, vueltos[1])):
+        ttk.Label(paso3, text=f"{vuelto} de {billete}").grid(row=i + 1, column=2, padx=20, sticky="w")
+
+
+
+    """ if not existe_placa:
+        error(error_frame, f"El vehículo con placa {placa_str.get()} no está en el parqueo")
+    else:
+        hacer_paso2() """
+
+
 
 
 """ despliega información sobre el programa en la ventana """
@@ -932,6 +1058,45 @@ def búsqueda_espaciada(lista: list) -> int:
             nuevo_campo = (i_campos_llenos[j] - i_campos_llenos[j - 1]) // 2 + i_campos_llenos[j - 1]
 
     return nuevo_campo
+
+"""
+retorna si es posible generar un monto con los billetes y monedas actuales,
+considerando de que exista una cantidad infinita de las denominaciones
+
+entradas: int (monto por analizar), list (monedas), list (billetes)
+"""
+def monto_posible(monto: int, monedas: list, billetes: list) -> bool:
+    i = 0;
+    denoms = billetes + monedas
+    denoms.sort(reverse=True)
+
+    for denom in denoms:
+        if monto // denom:
+            monto %= denom
+    
+    return monto == 0
+
+def monto_posible_realista(monto: int, cantidades_denominaciones: list) -> dict|int:
+    denoms = []
+    saldos = {}
+    distribución = {}
+
+    for denom, (ent, sal) in (cantidades_denominaciones[0] | cantidades_denominaciones[1]).items():
+        denoms.append(denom)
+        saldos[denom] = ent - sal
+    
+    denoms.sort(reverse=True)
+    
+    for denom in denoms:
+        if saldos[denom] != 0:
+            uso_posible = min(saldos[denom], monto // denom)
+            distribución[denom] = uso_posible
+            monto -= denom * uso_posible
+
+    if monto != 0:
+        return -1
+    else:
+        return distribución
 
 ########################################
 # Pruebas ##############################
