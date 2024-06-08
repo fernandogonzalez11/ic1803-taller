@@ -44,6 +44,7 @@ ventana = tk.Tk()
 # estilo de prueba para ver tamaños
 estilo_borde = ttk.Style()
 estilo_borde.configure("A.TFrame", bordercolor="blue", borderwidth=2, relief="solid")
+estilo_borde.configure("A.TLabel", bordercolor="blue", borderwidth=2, relief="solid")
 
 # variable del campo de texto
 frame = ttk.Frame(ventana)
@@ -813,6 +814,7 @@ def cajero():
     clear_frame()
 
     hora_salida = datetime.datetime.today()
+    pagado = 0
 
     # crear encabezado
     headings = ttk.Frame(frame)
@@ -838,64 +840,93 @@ def cajero():
     placa_str = tk.StringVar()
     placa = ttk.Entry(paso1, width=10, textvariable=placa_str)
     placa.grid(row=0, column=1, padx=20, sticky="w")
-    # placa.bind("<FocusOut>", pasar_al_paso2)
+    
 
-    """ def pasar_al_paso2():
+    def añadir(denom, pago_cnv, pago_id, cambio_cnv, cambio_id, tarjeta_entry, pago, botones_frame):
+        # args = (m, pago_cnv, pago_id, cambio_cnv, cambio_id, tarjeta_entry)
+        nonlocal pagado
+
+        tarjeta_entry.config(state="disabled")
+        pagado += denom
+        pago_cnv.itemconfig(pago_id, text=str(pagado))
+
+        if pagado >= pago:
+            for botón in botones_frame.winfo_children():
+                botón.config(state="disabled")
+                
+            pasar_al_paso3(pago, pagado, cambio_cnv, cambio_id)
+
+    
+    def pasar_al_paso2(*args):
         placa_str_str = placa_str.get()
 
-        existe_placa = False
-        for campo in parqueo:
-            if campo and campo[0] == placa_str_str:
-                existe_placa = True
+        campo = None
+        for c in parqueo:
+            if c and c[0] == placa_str_str:
+                campo = c
                 break
                 
-        if not existe_placa:
-            error(error_frame, f"El vehículo con placa {placa_str_str} no está en el parqueo")
-        else:
-            pass """
+        if campo:
+            clear_frame(error_frame)
+            placa.config(state="disabled")
+            d, h, m = redondear_tiempo(hora_salida - campo[1])
+            pago = calcular_pago(d, h, m)
 
-    ttk.Label(paso1, text="Hora de entrada").grid(row=1, column=0, sticky="w")
-    ttk.Label(paso1, text="a:b").grid(row=1, column=1, padx=20, sticky="w") # TODO: cambiar
-    ttk.Label(paso1, text="Hora de salida").grid(row=2, column=0, sticky="w")
-    ttk.Label(paso1, text=hora_salida.strftime(FORMATO_HORA)).grid(row=2, column=1, padx=20, sticky="w")
-    ttk.Label(paso1, text="Tiempo cobrado").grid(row=3, column=0, sticky="w")
-    ttk.Label(paso1, text="a:a").grid(row=3, column=1, padx=20, sticky="w")
+            ttk.Label(paso1, text="Hora de entrada").grid(row=1, column=0, sticky="w")
+            ttk.Label(paso1, text=campo[1].strftime(FORMATO_HORA)).grid(row=1, column=1, padx=20, sticky="w") # TODO: cambiar
+            ttk.Label(paso1, text="Hora de salida").grid(row=2, column=0, sticky="w")
+            ttk.Label(paso1, text=hora_salida.strftime(FORMATO_HORA)).grid(row=2, column=1, padx=20, sticky="w")
+            ttk.Label(paso1, text="Tiempo cobrado").grid(row=3, column=0, sticky="w", pady=7)
+            ttk.Label(paso1, text=f"{h:02}h {m:02}m  {d}d").grid(row=3, column=1, padx=20, pady=7, sticky="w")
 
-    ttk.Label(paso1, text="A pagar").grid(row=0, column=2, padx=30)
-    a_pagar = tk.Canvas(paso1, width=100, height=60, background="#DC143C")
-    a_pagar.grid(row=1, column=2, rowspan=2, padx=30, pady=10)
-    a_pagar.create_text(50, 30, text="xxxxxx", anchor="center", font=(FUENTE, 16))
-    ttk.Label(paso1, text="Pago").grid(row=1, column=3, padx=10, sticky="w")
+            ttk.Label(paso1, text="A pagar").grid(row=0, column=2, padx=30)
+            a_pagar = tk.Canvas(paso1, width=100, height=60, background="#DC143C")
+            a_pagar.grid(row=1, column=2, rowspan=2, padx=30)
+            a_pagar.create_text(50, 30, text=str(pago), anchor="center", font=(FUENTE, 16))
+            
+            ttk.Label(paso1, text="Pago").grid(row=1, column=3, padx=10, sticky="w")
+            pago_cnv = tk.Canvas(paso1, width=100, height=30, background="#2E8B57")
+            pago_cnv.grid(row=1, column=4)
+            pago_id = pago_cnv.create_text(50, 15, text="xxxxxx", anchor="center", font=(FUENTE, 16))
 
-    pago = tk.Canvas(paso1, width=100, height=30, background="#2E8B57")
-    pago.grid(row=1, column=4)
-    pago.create_text(50, 15, text="xxxxxx", anchor="center", font=(FUENTE, 16))
+            ttk.Label(paso1, text="Cambio").grid(row=2, column=3, padx=10, sticky="w")
+            cambio_cnv = tk.Canvas(paso1, width=100, height=30, background="#2E8B57")
+            cambio_cnv.grid(row=2, column=4)
+            cambio_id = cambio_cnv.create_text(50, 15, text="xxxxxx", anchor="center", font=(FUENTE, 16))            
 
-    #ttk.Label(paso1, text="xxxxxx", font=(FUENTE, 14)).grid(row=1, column=4)
-    ttk.Label(paso1, text="Cambio").grid(row=2, column=3, padx=10, sticky="w")
-    cambio = tk.Canvas(paso1, width=100, height=30, background="#2E8B57")
-    cambio.grid(row=2, column=4)
-    cambio.create_text(50, 15, text="xxxxxx", anchor="center", font=(FUENTE, 16))
-    #ttk.Label(paso1, text="xxxxxx", font=(FUENTE, 14)).grid(row=2, column=4)
+            # --- paso 2 --- #
+            ttk.Label(paso2, text="Paso 2: su pago en").grid(row=0, column=0)
+            ttk.Label(paso2, text="Monedas").grid(row=0, column=1, padx=20)
+            ttk.Label(paso2, text="Billetes").grid(row=0, column=2, padx=50)
+            ttk.Label(paso2, text="Tarjeta de crédito").grid(row=0, column=3, padx=20)
 
-    # --- paso 2 --- #
-    ttk.Label(paso2, text="Paso 2: su pago en").grid(row=0, column=0)
-    ttk.Label(paso2, text="Monedas").grid(row=0, column=1, padx=20)
-    ttk.Label(paso2, text="Billetes").grid(row=0, column=2, padx=20)
-    ttk.Label(paso2, text="Tarjeta de crédito").grid(row=0, column=3, padx=20)
+            tarjeta = tk.StringVar()
+            tarjeta_entry = ttk.Entry(paso2, textvariable=tarjeta)
+            tarjeta_entry.grid(row=1, column=3, padx=20)
+            # TODO: bind
 
-    for i, m in enumerate(monedas):
-        ttk.Button(paso2, text=str(m), width=3).grid(row=i + 1, column=1, padx=20)
-        # TODO: bind
+            botones_frame = ttk.Frame(paso2)
+            botones_frame.grid(row=1, column=1, columnspan=2, rowspan=5, sticky="w")
 
-    for i, b in enumerate(billetes):
-        ttk.Button(paso2, text=str(b)).grid(row=i + 1, column=2, padx=20)
-        # TODO: bind
+            for i, m in enumerate(monedas):
+                args = (m, pago_cnv, pago_id, cambio_cnv, cambio_id, tarjeta_entry, pago, botones_frame)
+                # deconstruir la tupla de argumentos en la llamada de la función, tal que
+                # f(*(a, b, c)) -> f(a, b, c)
+                ttk.Button(botones_frame, text=str(m), command=lambda args=args: añadir(*args), width=3).grid(row=i, column=0, padx=45)
 
-    tarjeta = tk.StringVar()
-    ttk.Entry(paso2, textvariable=tarjeta).grid(row=1, column=3, padx=20)
+            for i, b in enumerate(billetes):
+                args = (b, pago_cnv, pago_id, cambio_cnv, cambio_id, tarjeta_entry, pago, botones_frame)
+                ttk.Button(botones_frame, text=str(b), command=lambda args=args: añadir(*args)).grid(row=i, column=1, padx=50)
+
+    def pasar_al_paso3(por_pagar, pagado, cambio_cnv, cambio_id):
+        cambio = pagado - por_pagar
+        cambio_cnv.itemconfigure(cambio_id, text=str(cambio))
+        # TODO: continuar
+
+    placa_str.trace_add("write", pasar_al_paso2)
 
     # --- paso 3 --- #
+    """ 
     vueltos = [[0] * len(monedas), [0] * len(billetes)]
     ttk.Label(paso3, text="Paso 3: su cambio en").grid(row=0, column=0)
     ttk.Label(paso3, text="Monedas").grid(row=0, column=1, padx=20, sticky="w")
@@ -905,7 +936,7 @@ def cajero():
         ttk.Label(paso3, text=f"{vuelto} de {moneda}").grid(row=i + 1, column=1, padx=20, sticky="w")
     
     for i, (billete, vuelto) in enumerate(zip(billetes, vueltos[1])):
-        ttk.Label(paso3, text=f"{vuelto} de {billete}").grid(row=i + 1, column=2, padx=20, sticky="w")
+        ttk.Label(paso3, text=f"{vuelto} de {billete}").grid(row=i + 1, column=2, padx=20, sticky="w") """
 
 
 
@@ -1097,6 +1128,39 @@ def monto_posible_realista(monto: int, cantidades_denominaciones: list) -> dict|
         return -1
     else:
         return distribución
+
+"""
+redondear el tiempo según la cantidad de minutos de redondeo especificada en la configuración 
+si los minutos es menor al redondeo, se coloca todo en 0 (indicador de que se debería priorizar el pago mínimo)
+entrada: datetime.timedelta (tiempo transcurrido entre dos puntos datetime.datetime)
+salida: tupla (días, horas, minutos)
+"""
+def redondear_tiempo(tiempo: datetime.timedelta):
+    segundos = tiempo.days * 86400 + tiempo.seconds
+    minutos = segundos // 60
+
+    if minutos < redondeo and pago_mínimo:
+        return (0, 0, 0)
+
+    # obtener cuántos "ciclos" de redondeo caben en los minutos,
+    # sumarle 1 (techo) y volver a convertir en minutos
+    minutos = (minutos // redondeo + 1) * redondeo
+
+    horas, minutos = divmod(minutos, 60)
+    días, horas = divmod(horas, 24)
+
+    return días, horas, minutos
+
+def calcular_pago(días, horas, minutos):
+    # según redondear tiempo, (0, 0, 0) indicaría priorizar el pago mínimo
+    if not (días or horas or minutos):
+        return pago_mínimo
+
+    minutos_totales = días * 1440 + horas * 60 + minutos
+
+    # obtener las horas, multiplicarlas por el precio por hora, y retornar un int para mantener consistencia
+    return int(minutos_totales / 60 * precio_hora)
+
 
 ########################################
 # Pruebas ##############################
