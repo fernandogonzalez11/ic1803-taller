@@ -83,7 +83,7 @@ def menú_principal():
 
     menubar.add_command(label="Entrada del vehículo", command=entrada_vehículo)
     menubar.add_command(label="Cajero", command=cajero)
-    menubar.add_command(label="Salida del vehículo")
+    menubar.add_command(label="Salida del vehículo", command=salida_vehículo)
     menubar.add_command(label="Reporte de ingresos de dinero")
     menubar.add_command(label="Ayuda")
     menubar.add_command(label="Acerca de", command=acerca_de)
@@ -774,7 +774,7 @@ def entrada_vehículo():
         placa_entry.grid(row=1, column=1, pady=10, sticky="e")
 
         ttk.Label(contents, text="Campo asignado").grid(row=2, column=0, pady=10, sticky="w")
-        ttk.Label(contents, text=str(índice_nuevo_vehículo), font=(FUENTE, 16)).grid(row=2, column=1, pady=10, sticky="e")
+        ttk.Label(contents, text=str(índice_nuevo_vehículo + 1), font=(FUENTE, 16)).grid(row=2, column=1, pady=10, sticky="e")
 
         ttk.Label(contents, text="Hora de entrada").grid(row=3, column=0, pady=10, sticky="w")
         ttk.Label(contents, text=hora_entrada.strftime(FORMATO_HORA)).grid(row=3, column=1, pady=10, sticky="e")
@@ -839,7 +839,7 @@ def cajero():
 
     pago_exitoso = ttk.Label(frame, text="Pago exitoso. Presione \"Finalizar\".")
 
-    anular = ttk.Button(frame, text="Anular pago")
+    anular = ttk.Button(frame, text="anular pago")
 
     error_frame = ttk.Frame(frame)
     error_frame.grid(row=6, column=0, sticky="w", pady=20)
@@ -883,7 +883,7 @@ def cajero():
             cambio_cnv.itemconfigure(cambio_id, text="N/A")
 
             pago_exitoso.grid(row=4, column=0, sticky="w")
-            anular.configure(text="Finalizar")
+            anular.configure(text="finalizar")
 
     def pasar_al_paso2(*args):
         nonlocal i_campo
@@ -902,7 +902,7 @@ def cajero():
 
             if len(campo) > 2:
                 error(error_frame, f"El vehículo con placa {placa_str_str} ya está pagado")
-                anular.config(text="Finalizar")
+                anular.config(text="finalizar")
                 anular.grid(row=5, column=0, sticky="w")
                 return
 
@@ -1032,8 +1032,80 @@ def cajero():
     anular.configure(command=reset)
     placa_str.trace_add("write", pasar_al_paso2)
 
+""" desocupa el campo del vehículo que estaba en él, si es que ya pagó y salió a tiempo """
+def salida_vehículo():
+    clear_frame()
 
+    # crear el encabezado
+    título = ttk.Label(frame, text="Estacionamiento - salida de vehículo")
+    título.grid(pady=10, row=0, column=0, sticky="w")
+    título.config(font=(FUENTE, 16))
 
+    contents = ttk.Frame(frame)
+    contents.grid(row=1, column=0, sticky="w", pady=10)
+
+    ttk.Label(contents, text="Su placa").grid(row=0, column=0, sticky="w")
+    placa_str = tk.StringVar()
+    placa = ttk.Entry(contents, textvariable=placa_str, width=10)
+    placa.grid(row=0, column=1, padx=10)
+
+    error_frame = ttk.Frame(frame)
+    error_frame.grid(row=3, column=0, sticky="w")
+
+    i_campo = 0
+    tiempo_salida = 0
+
+    def salida():
+        nonlocal i_campo, tiempo_salida
+
+        tiempo_salida = datetime.datetime.today()
+        placa_str_str = placa_str.get()
+
+        campo = None
+        for i, c in enumerate(parqueo):
+            if c and c[0] == placa_str_str:
+                campo = c
+                i_campo = i
+                break
+        
+        if campo:
+            if len(campo) < 4:
+                reset()
+                error(error_frame, "Debe pagar en el cajero antes de salir")
+            else:
+                tiempo_transcurrido = tiempo_salida - campo[2]
+                tiempo_transcurrido = tiempo_transcurrido.days * 24 * 60 + tiempo_transcurrido.seconds // 60
+
+                error_exceso = f"""No puede salir porque excedió el tiempo el tiempo permitido para ello.
+Tiempo máximo para salir del parqueo: {minutos_máximos} minutos
+Tiempo que usted ha tardado: {tiempo_transcurrido} minutos
+Debe regresar al cajero a pagar la diferencia."""
+
+                # si se pasó del tiempo permitido para salir, hace una nueva entrada con la fecha de pago
+                reset()
+                if tiempo_transcurrido > minutos_máximos:
+                    error(error_frame, error_exceso)
+                    pasar_a_historial(campo)
+                    parqueo[i_campo] = [campo[0], campo[2]]
+                else:
+                    pasar_a_historial(campo)
+        else:
+            reset()
+            error(error_frame, f"La placa {placa_str_str} no está en el parqueo")
+
+    def reset():
+        clear_frame(error_frame)
+        placa.delete(0, "end")
+
+    def pasar_a_historial(campo):
+        historial_parqueo.append([campo[0], i_campo + 1, campo[1], campo[2], campo[3], tiempo_salida])
+        parqueo[i_campo] = []
+
+    botones = ttk.Frame(frame)
+    botones.grid(row=2, column=0, sticky="w", pady=20)
+
+    ttk.Button(botones, text="ok", command=salida).grid(row=2, column=0, sticky="w")
+    ttk.Button(botones, text="cancelar", command=reset).grid(row=2, column=1, padx=10)
 
 """ despliega información sobre el programa en la ventana """
 def acerca_de():
