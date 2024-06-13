@@ -35,7 +35,7 @@ import pickle
 parqueo = []
 
 # contiene todos los pagos hechos, adiciona información cada vez que un campo se libera
-# una entrada se ve así: [placa, número_espacio, fecha_hora_entrada, fecha_hora_salida, monto_pagado]
+# una entrada se ve así: [placa, número_espacio, fecha_hora_entrada, fecha_hora_pago, monto_pagado, fecha_hora_salida]
 historial_parqueo = []
 
 # variable global de la ventana general del programa
@@ -64,6 +64,8 @@ billetes = []
 # denominaciones de moneda con sus cantidades ingresadas y egresadas
 cantidades_denominaciones = [{}, {}]
 
+# versión del programa
+VERSIÓN = "0.9.0"
 
 ########################################
 # Funcionalidades base #################
@@ -84,7 +86,7 @@ def menú_principal():
     menubar.add_command(label="Entrada del vehículo", command=entrada_vehículo)
     menubar.add_command(label="Cajero", command=cajero)
     menubar.add_command(label="Salida del vehículo", command=salida_vehículo)
-    menubar.add_command(label="Reporte de ingresos de dinero")
+    menubar.add_command(label="Reporte de ingresos de dinero", command=reporte_ingresos)
     menubar.add_command(label="Ayuda")
     menubar.add_command(label="Acerca de", command=acerca_de)
     menubar.add_command(label="Salir", command=salir)
@@ -92,7 +94,7 @@ def menú_principal():
     ventana.config(menu=menubar)
 
     # crear un evento de guardar datos al cerrar la ventana con X
-    ventana.wm_protocol("WM_DELETE_WINDOW", guardar_datos)
+    ventana.wm_protocol("WM_DELETE_WINDOW", salir)
 
     # una vez configurado todo el aspecto gráfico, mostrar la ventana
     ventana.mainloop()
@@ -882,6 +884,10 @@ def cajero():
             pago_cnv.itemconfigure(pago_id, text=str(pago))
             cambio_cnv.itemconfigure(cambio_id, text="N/A")
 
+            # actualizar el campo del parqueo con la fecha hora de salida y el monto cancelado
+            parqueo[i_campo].append(hora_salida)
+            parqueo[i_campo].append(pago)
+
             pago_exitoso.grid(row=4, column=0, sticky="w")
             anular.configure(text="finalizar")
 
@@ -1107,17 +1113,121 @@ Debe regresar al cajero a pagar la diferencia."""
     ttk.Button(botones, text="ok", command=salida).grid(row=2, column=0, sticky="w")
     ttk.Button(botones, text="cancelar", command=reset).grid(row=2, column=1, padx=10)
 
+def reporte_ingresos():
+    clear_frame()
+
+    # crear el encabezado
+    título = ttk.Label(frame, text="Estacionamiento - reporte de ingresos de dinero")
+    título.grid(pady=10, row=0, column=0, columnspan=5, sticky="w")
+    título.config(font=(FUENTE, 16))
+
+    reporte_frame = ttk.Frame(frame)
+    reporte_frame.grid(row=1, column=0, sticky="w")
+
+    ttk.Label(reporte_frame, text="Ingresos desde el día").grid(row=0, column=0, sticky="w")
+    desde = tk.StringVar()
+    ttk.Entry(reporte_frame, textvariable=desde, width=10).grid(row=0, column=1, sticky="w", padx=20)
+
+    ttk.Label(reporte_frame, text="Hasta el día").grid(row=1, column=0, sticky="w")
+    hasta = tk.StringVar()
+    ttk.Entry(reporte_frame, textvariable=hasta, width=10).grid(row=1, column=1, sticky="w", padx=20)
+
+    cálculos_reporte_frame = ttk.Frame(frame)
+
+    ttk.Label(cálculos_reporte_frame, text="Total de ingresos").grid(row=2, column=0, sticky="w", pady=20)
+    total_ingresos = ttk.Label(cálculos_reporte_frame)
+    total_ingresos.grid(row=2, column=1, sticky="w", padx=45)
+    
+    
+    ttk.Label(frame, text="Para hacer una estimación de ingresos digite la fecha y hora hasta la cual ocupa la estimación:") \
+        .grid(row=3, column=0, sticky="w", pady=(30, 10))
+
+    estimación_frame = ttk.Frame(frame)
+    estimación_frame.grid(row=4, column=0, sticky="w")
+
+    ttk.Label(estimación_frame, text="Fecha para la estimación").grid(row=0, column=0, sticky="w")
+    fecha_estim = tk.StringVar()
+    ttk.Entry(estimación_frame, textvariable=fecha_estim, width=10).grid(row=0, column=1, columnspan=10, sticky="w", padx=20)
+
+    ttk.Label(estimación_frame, text="Hora para la estimación").grid(row=1, column=0, sticky="w")
+    hora_estim = tk.StringVar()
+    minuto_estim = tk.StringVar()
+    ttk.Entry(estimación_frame, textvariable=hora_estim, width=2).grid(row=1, column=1, sticky="w", padx=(20, 0))
+    ttk.Label(estimación_frame, text=":").grid(row=1, column=2, sticky="w")
+    ttk.Entry(estimación_frame, textvariable=minuto_estim, width=2).grid(row=1, column=3, sticky="w")
+
+    cálculos_estimación_frame = ttk.Frame(frame)
+    ttk.Label(cálculos_estimación_frame, text="Estimado de ingresos por recibir").grid(row=0, column=0, pady=20)
+    total_estimación = ttk.Label(cálculos_estimación_frame)
+    total_estimación.grid(row=0, column=1, padx=20)
+
+    error_frame = ttk.Frame(frame)
+    error_frame.grid(row=7, column=0, sticky="w")
+
+    def calcular():
+        # paso 1: calcular los ingresos de x a y día
+        try:
+            clear_frame(error_frame)
+            delta = datetime.timedelta(days=1)
+            fecha_inicio = datetime.datetime.strptime(desde.get(), "%d/%m/%Y")
+            fecha_fin = datetime.datetime.strptime(hasta.get(), "%d/%m/%Y") + delta
+
+            total = 0
+            for campo in historial_parqueo:
+                # [placa, número_espacio, fecha_hora_entrada, fecha_hora_pago, monto_pagado, fecha_hora_salida]
+                if campo[3] >= fecha_inicio and campo[3] < fecha_fin:
+                    total += campo[4]
+
+            total_ingresos.config(text=str(total))
+            cálculos_reporte_frame.grid(row=2, column=0, sticky="w")
+            
+        except ValueError:
+            error(error_frame, "Debe proveer una fecha de inicio y final correcta")
+            
+        # paso 2: opcionalmente calcular la proyección de ingresos, suponiendo que todos los autos pagan al tiempo de la llamada
+        if fecha_estim.get():
+            try:
+                fecha_hora = datetime.datetime.strptime(
+                    f"{fecha_estim.get()} {hora_estim.get()} {minuto_estim.get()}",
+                    "%d/%m/%Y %H %M"
+                )
+
+                total = 0
+                for campo in parqueo:
+                    # solo considerar aquellos pagos que sí estén antes de la fecha solicitada,
+                    # para no incurrir en tiempos negativos
+                    if campo and campo[1] <= fecha_hora:
+                        # redondear_tiempo retorna un tuple que se deconstruye como los parámetros de calcular_pago
+                        total += calcular_pago(*redondear_tiempo(fecha_hora - campo[1]))
+
+                total_estimación.config(text=total)
+                cálculos_estimación_frame.grid(row=5, column=0, sticky="w")
+            except Exception as e:
+                print(e)
+                error(error_frame, "Debe proveer una fecha y hora de estimación correcta")
+
+        # TODO: proyección
+
+    botones = ttk.Frame(frame)
+    botones.grid(row=6, column=0, sticky="w")
+    ttk.Button(botones, text="ok", command=calcular).grid(row=2, column=0, sticky="w")
+    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=2, column=1, padx=10)
+
 """ despliega información sobre el programa en la ventana """
 def acerca_de():
     clear_frame()
 
-    textos = ["Administrador de estacionamiento de vehículos", "Fecha de creación: 2024/05/24",
-        "Autor: Fernando González Robles", "Programa 3 - IC1803 Taller de Programación"]
+    textos = [
+        "Administrador de estacionamiento de vehículos",
+        f"Versión {VERSIÓN}",
+        "Fecha de creación: 2024/05/24",
+        "Autor: Fernando González Robles",
+        "Programa 3 - IC1803 Taller de Programación"
+    ]
 
     for i, texto in enumerate(textos):
-        label = ttk.Label(frame, text=texto, justify="left", anchor="w")
+        label = ttk.Label(frame, text=texto, font=(FUENTE, 16))
         label.grid(sticky="w", column=0, row=i)
-        label.config(font = (FUENTE, 16))
 
 def salir():
     guardar_datos()
@@ -1156,7 +1266,6 @@ def guardar_datos():
     f_config.write(f"{minutos_máximos}\n")
     f_config.write(f"{monedas}\n")
     f_config.write(f"{billetes}\n")
-    f_config.write(f"{cantidades_denominaciones}\n")
 
     f_config.close()
 
@@ -1168,8 +1277,9 @@ def guardar_datos():
     pickle.dump(historial_parqueo, f_historial)
     f_historial.close()
 
-
-    # TODO: seguir
+    f_cajero = open("cajero.dat", "wb")
+    pickle.dump(cantidades_denominaciones, f_cajero)
+    f_cajero.close()
 
 """ el tándem de guardar datos, lee los archivos guardados cuando inicia el programa """
 def leer_datos():
@@ -1186,7 +1296,6 @@ def leer_datos():
         minutos_máximos = int(f_config.readline()[:-1])
         monedas = eval(f_config.readline()[:-1])
         billetes = eval(f_config.readline()[:-1])
-        cantidades_denominaciones = eval(f_config.readline()[:-1])
         f_config.close()
 
         f_parqueo = open("parqueo.dat", "rb")
@@ -1196,6 +1305,10 @@ def leer_datos():
         f_historial = open("historial_parqueo.dat", "rb")
         historial_parqueo = pickle.load(f_historial)
         f_historial.close()
+
+        f_parqueo = open("cajero.dat", "rb")
+        cantidades_denominaciones = pickle.load(f_parqueo)
+        f_parqueo.close()
     except:
         return
 
