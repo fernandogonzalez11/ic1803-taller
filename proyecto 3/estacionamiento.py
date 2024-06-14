@@ -41,11 +41,6 @@ historial_parqueo = []
 # variable global de la ventana general del programa
 ventana = tk.Tk()
 
-# estilo de prueba para ver tamaños
-estilo_borde = ttk.Style()
-estilo_borde.configure("A.TFrame", bordercolor="blue", borderwidth=2, relief="solid")
-estilo_borde.configure("A.TLabel", bordercolor="blue", borderwidth=2, relief="solid")
-
 # variable del campo de texto
 frame = ttk.Frame(ventana)
 
@@ -1205,8 +1200,6 @@ def reporte_ingresos():
             except Exception as e:
                 print(e)
                 error(error_frame, "Debe proveer una fecha y hora de estimación correcta")
-
-        # TODO: proyección
 
     botones = ttk.Frame(frame)
     botones.grid(row=6, column=0, sticky="w")
