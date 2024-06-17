@@ -60,7 +60,7 @@ billetes = []
 cantidades_denominaciones = [{}, {}]
 
 # versión del programa
-VERSIÓN = "0.9.1"
+VERSIÓN = "0.9.2"
 
 ########################################
 # Funcionalidades base #################
@@ -1412,7 +1412,7 @@ def redondear_tiempo(tiempo: datetime.timedelta):
     segundos = tiempo.days * 86400 + tiempo.seconds
     minutos = segundos // 60
 
-    if not redondeo or (minutos < redondeo and pago_mínimo):
+    if not redondeo:
         return (0, 0, 0)
 
     # obtener cuántos "ciclos" de redondeo caben en los minutos,
@@ -1438,7 +1438,14 @@ def calcular_pago(días: int, horas: int, minutos: int) -> int:
     minutos_totales = días * 1440 + horas * 60 + minutos
 
     # obtener las horas, multiplicarlas por el precio por hora, y retornar un int para mantener consistencia
-    return int(minutos_totales / 60 * precio_hora)
+    precio_neto = int(minutos_totales / 60 * precio_hora)
+
+    # pero preferir el mínimo si no se ha pasado
+    if precio_neto < pago_mínimo:
+        return pago_mínimo
+    else:
+        return precio_neto
+    
 
 
 ########################################
