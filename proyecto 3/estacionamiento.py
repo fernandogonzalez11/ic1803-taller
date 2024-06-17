@@ -60,7 +60,7 @@ billetes = []
 cantidades_denominaciones = [{}, {}]
 
 # versión del programa
-VERSIÓN = "0.9.0"
+VERSIÓN = "0.9.1"
 
 ########################################
 # Funcionalidades base #################
@@ -786,9 +786,9 @@ def entrada_vehículo():
     def parquear():
         placa_str = placa.get()
 
-        if not placa_str:
+        if not placa_str or len(placa_str) > 8:
             clear_frame(error_frame)
-            error(error_frame, "El campo de placa debe estar lleno")
+            error(error_frame, "El campo de placa debe ser entre 1 y 8 caracteres")
             return
 
         for campo in campos_ocupados:
@@ -912,7 +912,7 @@ def cajero():
             pago = calcular_pago(d, h, m)
 
             ttk.Label(paso1, text="Hora de entrada").grid(row=1, column=0, sticky="w")
-            ttk.Label(paso1, text=campo[1].strftime(FORMATO_HORA)).grid(row=1, column=1, padx=20, sticky="w") # TODO: cambiar
+            ttk.Label(paso1, text=campo[1].strftime(FORMATO_HORA)).grid(row=1, column=1, padx=20, sticky="w")
             ttk.Label(paso1, text="Hora de salida").grid(row=2, column=0, sticky="w")
             ttk.Label(paso1, text=hora_salida.strftime(FORMATO_HORA)).grid(row=2, column=1, padx=20, sticky="w")
             ttk.Label(paso1, text="Tiempo cobrado").grid(row=3, column=0, sticky="w", pady=7)
@@ -1412,7 +1412,7 @@ def redondear_tiempo(tiempo: datetime.timedelta):
     segundos = tiempo.days * 86400 + tiempo.seconds
     minutos = segundos // 60
 
-    if minutos < redondeo and pago_mínimo:
+    if not redondeo or (minutos < redondeo and pago_mínimo):
         return (0, 0, 0)
 
     # obtener cuántos "ciclos" de redondeo caben en los minutos,
