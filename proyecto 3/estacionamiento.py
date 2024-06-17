@@ -304,7 +304,7 @@ def configuración():
         if campo:
             error(error_frame, "El parqueo debe estar vacío para configurarlo")
 
-            ttk.Button(error_frame, text="ok", command=clear_frame) \
+            ttk.Button(error_frame, text="OK", command=clear_frame) \
                 .grid(column=0, row=1, sticky="w", pady=10, padx=10)
 
             return
@@ -323,9 +323,9 @@ def configuración():
         entradas.append(entry)
 
     # añadir los botones
-    ttk.Button(botones, text="ok", command=establecer) \
+    ttk.Button(botones, text="OK", command=establecer) \
         .grid(column=0, row=0, sticky="w", pady=10, padx=10)
-    ttk.Button(botones, text="cancelar", command=clear_frame) \
+    ttk.Button(botones, text="Cancelar", command=clear_frame) \
         .grid(column=1, row=0, sticky="w", pady=10, padx=10)
 
 """ despliega saldo del cajero en sus diferentes denominaciones """
@@ -439,8 +439,8 @@ def saldo_cajero():
     ttk.Label(contents, text=str(totales[5] - totales[7])).grid(row=i, column=6, padx=10)
 
     ttk.Checkbutton(botones, text="Vaciar cajero", variable=vaciar).grid(row=0, pady=10)
-    ttk.Button(botones, text="ok", command=vaciar_o_no).grid(row=1, column=0, padx=10)
-    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
+    ttk.Button(botones, text="OK", command=vaciar_o_no).grid(row=1, column=0, padx=10)
+    ttk.Button(botones, text="Cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
 
 """ despliega saldo del cajero en sus diferentes denominaciones """
 def cargar_cajero():
@@ -697,8 +697,8 @@ def cargar_cajero():
     totales_editar[7].config(text=str(totales[3]))
     totales_editar[7].grid(row=i, column=6)
 
-    ttk.Button(botones, text="ok", command=establecer).grid(row=1, column=0, padx=10)
-    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
+    ttk.Button(botones, text="OK", command=establecer).grid(row=1, column=0, padx=10)
+    ttk.Button(botones, text="Cancelar", command=clear_frame).grid(row=1, column=1, padx=10)
 
 """ registra la entrada de un vehículo, si el parqueo tiene campos disponibles """
 def entrada_vehículo():
@@ -723,7 +723,7 @@ def entrada_vehículo():
     if not parqueo:
         error(error_frame, "El parqueo debe configurarse para acceder a esta funcionalidad")
 
-        ttk.Button(error_frame, text="ok", command=clear_frame) \
+        ttk.Button(error_frame, text="OK", command=clear_frame) \
             .grid(column=0, row=1, sticky="w", pady=10, padx=10)
 
         return
@@ -756,7 +756,7 @@ def entrada_vehículo():
         if índice_nuevo_vehículo == -1:
             error(contents, "NO HAY ESPACIO", row=0, col=1)
 
-            ttk.Button(error_frame, text="ok :(", command=crear_campos) \
+            ttk.Button(error_frame, text="OK :(", command=crear_campos) \
                 .grid(column=0, row=1, sticky="w", pady=10, padx=10)
 
             return
@@ -805,8 +805,8 @@ def entrada_vehículo():
 
     # crear botones de ok y cancelar
     crear_campos()
-    ttk.Button(botones, text="ok", command=parquear).grid(row=0, column=0, sticky="w")
-    ttk.Button(botones, text="cancelar", command=crear_campos).grid(row=0, column=1, padx=10, sticky="e")
+    ttk.Button(botones, text="OK", command=parquear).grid(row=0, column=0, sticky="w")
+    ttk.Button(botones, text="Cancelar", command=crear_campos).grid(row=0, column=1, padx=10, sticky="e")
 
 """ en 3 pasos:
 1. pide la placa del vehículo y muestra su monto a pagar
@@ -836,7 +836,7 @@ def cajero():
 
     pago_exitoso = ttk.Label(frame, text="Pago exitoso. Presione \"Finalizar\".")
 
-    anular = ttk.Button(frame, text="anular pago")
+    anular = ttk.Button(frame, text="Anular pago")
 
     error_frame = ttk.Frame(frame)
     error_frame.grid(row=6, column=0, sticky="w", pady=20)
@@ -884,7 +884,7 @@ def cajero():
             parqueo[i_campo].append(pago)
 
             pago_exitoso.grid(row=4, column=0, sticky="w")
-            anular.configure(text="finalizar")
+            anular.configure(text="Finalizar")
 
     def pasar_al_paso2(*args):
         nonlocal i_campo
@@ -903,7 +903,7 @@ def cajero():
 
             if len(campo) > 2:
                 error(error_frame, f"El vehículo con placa {placa_str_str} ya está pagado")
-                anular.config(text="finalizar")
+                anular.config(text="Finalizar")
                 anular.grid(row=5, column=0, sticky="w")
                 return
 
@@ -1105,8 +1105,8 @@ Debe regresar al cajero a pagar la diferencia."""
     botones = ttk.Frame(frame)
     botones.grid(row=2, column=0, sticky="w", pady=20)
 
-    ttk.Button(botones, text="ok", command=salida).grid(row=2, column=0, sticky="w")
-    ttk.Button(botones, text="cancelar", command=reset).grid(row=2, column=1, padx=10)
+    ttk.Button(botones, text="OK", command=salida).grid(row=2, column=0, sticky="w")
+    ttk.Button(botones, text="Cancelar", command=reset).grid(row=2, column=1, padx=10)
 
 def reporte_ingresos():
     clear_frame()
@@ -1203,8 +1203,8 @@ def reporte_ingresos():
 
     botones = ttk.Frame(frame)
     botones.grid(row=6, column=0, sticky="w")
-    ttk.Button(botones, text="ok", command=calcular).grid(row=2, column=0, sticky="w")
-    ttk.Button(botones, text="cancelar", command=clear_frame).grid(row=2, column=1, padx=10)
+    ttk.Button(botones, text="OK", command=calcular).grid(row=2, column=0, sticky="w")
+    ttk.Button(botones, text="Cancelar", command=clear_frame).grid(row=2, column=1, padx=10)
 
 """ despliega información sobre el programa en la ventana """
 def acerca_de():
